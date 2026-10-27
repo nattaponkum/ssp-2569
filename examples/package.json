@@ -1,0 +1,13 @@
+{
+  "name": "@ssp/examples",
+  "private": true,
+  "type": "module",
+  "description": "โค้ดตัวอย่างประกอบเนื้อหาแต่ละบท (บทที่ 1–3) รันด้วย node ไฟล์.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.4",
+    "typescript": "~6.0.0"
+  }
+}

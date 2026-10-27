@@ -14,3 +14,6 @@ uploads/
 !.vscode/extensions.json
 *.tsbuildinfo
 .eslintcache
+
+# ต้นฉบับหนังสือ (ไม่เผยแพร่ใน repo สาธารณะ)
+book/

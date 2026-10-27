@@ -2,7 +2,7 @@
   "name": "ssp-2569",
   "private": true,
   "description": "โค้ดตัวอย่างประกอบหนังสือ Server Side Programming (273372) ฉบับ 2569",
-  "workspaces": ["shared", "server", "client"],
+  "workspaces": ["shared", "server", "client", "examples"],
   "scripts": {
     "dev:server": "npm run dev -w @ssp/server",
     "dev:client": "npm run dev -w @ssp/client",
