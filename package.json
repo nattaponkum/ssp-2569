@@ -6,8 +6,9 @@
   "scripts": {
     "dev:server": "npm run dev -w @ssp/server",
     "dev:client": "npm run dev -w @ssp/client",
-    "typecheck": "npm run typecheck -w @ssp/shared -w @ssp/server && npm run type-check -w @ssp/client",
-    "build": "npm run build -w @ssp/client"
+    "typecheck": "npm run typecheck -w @ssp/shared -w @ssp/server -w @ssp/examples && npm run type-check -w @ssp/client",
+    "build": "npm run build -w @ssp/client",
+    "test": "npm run test -w @ssp/server -w @ssp/client"
   },
   "engines": {
     "node": "^24.15.0 || >=26.0.0"

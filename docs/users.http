@@ -1,20 +1,34 @@
-### ทดสอบ API ด้วย VS Code REST Client หรือ Bruno
-GET http://localhost:8081/hello
+### ทดสอบ API ด้วย VS Code REST Client (คลิก "Send Request" เหนือแต่ละคำขอ)
+@baseUrl = http://localhost:8081/api
 
-###
-GET http://localhost:8081/users
+GET {{baseUrl}}/hello
 
-###
-GET http://localhost:8081/user/1
+### อ่านผู้ใช้ทั้งหมด
+GET {{baseUrl}}/users
 
-###
-POST http://localhost:8081/user
+### อ่านผู้ใช้ id 1
+GET {{baseUrl}}/users/1
+
+### สร้างผู้ใช้ ต้องได้ 201 Created
+POST {{baseUrl}}/users
 Content-Type: application/json
 
-{ "email": "somsri@example.com", "password": "password123", "name": "สมศรี", "lastname": "รักเรียน" }
+{ "email": "somsri@example.com", "name": "สมศรี", "lastname": "รักเรียน" }
+
+### แก้ไขบางฟิลด์
+PATCH {{baseUrl}}/users/1
+Content-Type: application/json
+
+{ "name": "สมชาย (แก้ไข)" }
+
+### ลบผู้ใช้ ต้องได้ 204 No Content
+DELETE {{baseUrl}}/users/2
 
 ### ส่งข้อมูลไม่ครบ ต้องได้ 400
-POST http://localhost:8081/user
+POST {{baseUrl}}/users
 Content-Type: application/json
 
-{ "email": "not-an-email" }
+{ "email": "somsri@example.com" }
+
+### ผู้ใช้ที่ไม่มีอยู่ ต้องได้ 404
+GET {{baseUrl}}/users/999
