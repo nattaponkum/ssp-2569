@@ -12,7 +12,7 @@
 
 ## สิ่งที่ต้องติดตั้ง
 
-- Node.js 24 LTS ขึ้นไป (`node -v`)
+- Node.js 24 LTS (24.15 ขึ้นไป) หรือ 26 ขึ้นไป ตรวจด้วย `node -v` (ไม่รองรับรุ่นเลขคี่ เช่น 25)
 - Git และบัญชี GitHub
 - VS Code พร้อมส่วนขยาย Vue (Official) และ REST Client
 
