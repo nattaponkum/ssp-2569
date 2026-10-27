@@ -10,6 +10,7 @@ defineProps<{
 
 <template>
   <article class="post-card">
+    <img v-if="post.thumbnail" :src="post.thumbnail" alt="" class="thumbnail" />
     <h2>
       <RouterLink :to="{ name: 'post', params: { id: post.id } }">{{ post.title }}</RouterLink>
     </h2>
@@ -24,6 +25,13 @@ defineProps<{
 .post-card {
   padding: 1rem 0;
   border-bottom: 1px solid var(--color-border);
+}
+
+.thumbnail {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 .post-card h2 {

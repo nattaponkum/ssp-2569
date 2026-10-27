@@ -35,8 +35,10 @@ watch(
     <p class="muted">
       {{ post.category }} · {{ post.authorName }} · {{ formatDate(post.createdAt) }}
     </p>
-    <!-- แสดงเป็นข้อความธรรมดา Vue escape HTML ให้อัตโนมัติ (บทที่ 13 เปลี่ยนเป็น HTML) -->
-    <div class="content">{{ post.content }}</div>
+    <img v-if="post.thumbnail" :src="post.thumbnail" alt="" class="thumbnail" />
+    <!-- v-html แสดง HTML ตามจริง ใช้ได้เพราะ server sanitize เนื้อหาแล้วเท่านั้น
+         ห้ามใช้ v-html กับข้อมูลจากผู้ใช้ที่ยังไม่ผ่านการ sanitize (เสี่ยง XSS) -->
+    <div class="content" v-html="post.content"></div>
   </article>
   <p v-else-if="error" class="error">{{ error }}</p>
   <p v-else class="muted">กำลังโหลด...</p>
@@ -44,7 +46,12 @@ watch(
 </template>
 
 <style scoped>
-.content {
-  white-space: pre-wrap;
+.thumbnail {
+  width: 100%;
+  border-radius: 6px;
+}
+
+.content :deep(img) {
+  max-width: 100%;
 }
 </style>

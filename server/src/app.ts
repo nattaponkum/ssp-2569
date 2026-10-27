@@ -1,10 +1,13 @@
+import { mkdirSync } from 'node:fs'
 import { Hono } from 'hono'
+import { serveStatic } from '@hono/node-server/serve-static'
 import { cors } from 'hono/cors'
 import { csrf } from 'hono/csrf'
 import { HTTPException } from 'hono/http-exception'
 import { config } from './config.ts'
 import { authRoute } from './routes/auth.ts'
 import { adminPostsRoute, postsRoute } from './routes/posts.ts'
+import { uploadsRoute } from './routes/uploads.ts'
 import { usersRoute } from './routes/users.ts'
 
 // ทุก endpoint อยู่ใต้ /api ส่วน route ของแต่ละ resource แยกไว้ใน routes/
@@ -19,6 +22,23 @@ export const app = new Hono()
   .route('/api/users', usersRoute)
   .route('/api/posts', postsRoute)
   .route('/api/admin/posts', adminPostsRoute)
+  .route('/api/uploads', uploadsRoute)
+
+// เสิร์ฟไฟล์ที่อัปโหลด: /uploads/<ชื่อไฟล์> อ่านจากโฟลเดอร์ UPLOAD_DIR
+// (สร้างโฟลเดอร์ไว้ก่อนถ้ายังไม่มี)
+mkdirSync(config.UPLOAD_DIR, { recursive: true })
+app.use(
+  '/uploads/*',
+  async (c, next) => {
+    // บอก browser ห้ามเดาชนิดไฟล์เอง ให้เชื่อ Content-Type ที่ server ส่ง
+    c.header('X-Content-Type-Options', 'nosniff')
+    await next()
+  },
+  serveStatic({
+    root: config.UPLOAD_DIR,
+    rewriteRequestPath: (path) => path.replace(/^\/uploads/, ''),
+  }),
+)
 
 // ไม่พบ route ที่ตรงกัน: ตอบ 404 รูปแบบเดียวกับ error อื่น
 app.notFound((c) => c.json({ error: 'ไม่พบ endpoint นี้' }, 404))

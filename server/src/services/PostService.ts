@@ -2,6 +2,7 @@ import { and, desc, eq } from 'drizzle-orm'
 import type { PostCreate, PostUpdate } from '@ssp/shared'
 import type { Db } from '../db/client.ts'
 import { posts, users } from '../db/schema.ts'
+import { htmlToText, sanitizePostHtml } from '../lib/html.ts'
 import type { AuthUser } from '../lib/token.ts'
 
 // คอลัมน์ที่เลือกมาทุกครั้ง: ข้อมูลบทความ + ชื่อผู้เขียนจากตาราง users (ได้มาด้วยการ join)
@@ -13,15 +14,21 @@ const postColumns = {
   content: posts.content,
   category: posts.category,
   status: posts.status,
+  thumbnail: posts.thumbnail,
   createdAt: posts.createdAt,
   updatedAt: posts.updatedAt,
 }
 
 const EXCERPT_LENGTH = 200
 
-// หน้ารายการไม่ส่งเนื้อหาเต็ม ส่งแค่ข้อความย่อ (excerpt)
+// หน้ารายการไม่ส่งเนื้อหาเต็ม ส่งแค่ข้อความย่อ (excerpt) ที่ตัดแท็ก HTML ออกแล้ว
 function toSummary<T extends { content: string }>({ content, ...rest }: T) {
-  return { ...rest, excerpt: content.slice(0, EXCERPT_LENGTH) }
+  return { ...rest, excerpt: htmlToText(content).slice(0, EXCERPT_LENGTH) }
+}
+
+// sanitize ซ้ำตอนอ่านอีกชั้น (defense in depth) เผื่อข้อมูลเก่าที่บันทึกไว้ก่อนมีการ sanitize
+function withSafeContent<T extends { content: string }>(post: T | undefined): T | undefined {
+  return post && { ...post, content: sanitizePostHtml(post.content) }
 }
 
 export class PostService {
@@ -48,9 +55,10 @@ export class PostService {
   }
 
   async findPublishedById(id: number) {
-    return this.selectPosts()
+    const post = this.selectPosts()
       .where(and(eq(posts.id, id), eq(posts.status, 'published')))
       .get()
+    return withSafeContent(post)
   }
 
   // สำหรับหน้าจัดการ: admin เห็นทุกบทความ ผู้ใช้ทั่วไปเห็นเฉพาะของตัวเอง
@@ -61,7 +69,7 @@ export class PostService {
   }
 
   async findById(id: number) {
-    return this.selectPosts().where(eq(posts.id, id)).get()
+    return withSafeContent(this.selectPosts().where(eq(posts.id, id)).get())
   }
 
   // แก้ไขหรือลบได้เฉพาะเจ้าของบทความหรือ admin
@@ -70,12 +78,15 @@ export class PostService {
   }
 
   async create(authorId: number, data: PostCreate) {
-    const { id } = this.db.insert(posts).values({ ...data, authorId }).returning().get()
+    // ทำความสะอาด HTML ก่อนบันทึกทุกครั้ง
+    const values = { ...data, content: sanitizePostHtml(data.content), authorId }
+    const { id } = this.db.insert(posts).values(values).returning().get()
     return (await this.findById(id))!
   }
 
   async update(id: number, data: PostUpdate) {
-    this.db.update(posts).set(data).where(eq(posts.id, id)).run()
+    const values = data.content ? { ...data, content: sanitizePostHtml(data.content) } : data
+    this.db.update(posts).set(values).where(eq(posts.id, id)).run()
     return this.findById(id)
   }
 

@@ -111,3 +111,27 @@ describe('/api/admin/posts', () => {
     expect((await send('GET', path, { cookie: other })).status).toBe(403)
   })
 })
+
+describe('เนื้อหา HTML และรูปปก (บทที่ 13)', () => {
+  it('server sanitize เนื้อหาก่อนบันทึก และ excerpt ไม่มีแท็ก HTML', async () => {
+    const { post } = await createPost(author, {
+      ...published,
+      content: '<p>สวัสดี<script>alert(1)</script></p><img src=x onerror=alert(1)>',
+    })
+    expect(post.content).toBe('<p>สวัสดี</p><img src="x" />')
+
+    const list = await (await send('GET', '/api/posts')).json()
+    const summary = list.find((p: { id: number }) => p.id === post.id)
+    expect(summary.excerpt).toBe('สวัสดี')
+  })
+
+  it('รูปปกต้องเป็น path ใน /uploads/ เท่านั้น', async () => {
+    const bad = await createPost(author, { ...draft, thumbnail: 'https://evil.example/a.png' })
+    expect(bad.res.status).toBe(400)
+
+    const thumbnail = '/uploads/123e4567-e89b-12d3-a456-426614174000.png'
+    const good = await createPost(author, { ...draft, thumbnail })
+    expect(good.res.status).toBe(201)
+    expect(good.post.thumbnail).toBe(thumbnail)
+  })
+})

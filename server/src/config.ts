@@ -7,6 +7,8 @@ const envSchema = z.object({
   // กุญแจลับสำหรับเซ็น JWT ต้องยาวพอที่จะเดาไม่ได้
   JWT_SECRET: z.string().min(32),
   CLIENT_ORIGIN: z.url().default('http://localhost:5173'),
+  // โฟลเดอร์เก็บไฟล์ที่ผู้ใช้อัปโหลด (อยู่ใน .gitignore)
+  UPLOAD_DIR: z.string().default('./uploads'),
 })
 
 const result = envSchema.safeParse(process.env)

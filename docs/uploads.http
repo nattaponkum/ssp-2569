@@ -1,0 +1,40 @@
+### ทดสอบการอัปโหลดรูป (บทที่ 13) ด้วย VS Code REST Client
+### ต้อง login ก่อน (ส่งคำขอ login ใน auth.http) และวางไฟล์ตัวอย่าง docs/sample.png ไว้
+@baseUrl = http://localhost:8081/api
+
+### อัปโหลดรูป ต้องได้ 201 พร้อม { id, url }
+POST {{baseUrl}}/uploads
+Origin: http://localhost:5173
+Content-Type: multipart/form-data; boundary=----SSPBoundary
+
+------SSPBoundary
+Content-Disposition: form-data; name="file"; filename="sample.png"
+Content-Type: image/png
+
+< ./sample.png
+------SSPBoundary--
+
+### ไฟล์ที่ไม่ใช่รูป (แม้ตั้งชื่อเป็น .png) ต้องได้ 415
+POST {{baseUrl}}/uploads
+Origin: http://localhost:5173
+Content-Type: multipart/form-data; boundary=----SSPBoundary
+
+------SSPBoundary
+Content-Disposition: form-data; name="file"; filename="fake.png"
+Content-Type: image/png
+
+<script>alert(1)</script>
+------SSPBoundary--
+
+### เปิดดูรูปที่อัปโหลด (แทนชื่อไฟล์ด้วย url ที่ได้จากคำขอแรก)
+GET http://localhost:8081/uploads/ใส่ชื่อไฟล์.png
+
+### ลบรูป (เจ้าของหรือ admin เท่านั้น)
+DELETE {{baseUrl}}/uploads/1
+Origin: http://localhost:5173
+
+### บทความที่มี HTML อันตราย: server ตัด <script> และ onerror ทิ้งก่อนบันทึก
+POST {{baseUrl}}/posts
+Content-Type: application/json
+
+{ "title": "ทดสอบ sanitize", "category": "ทดสอบ", "content": "<p>สวัสดี</p><script>alert(1)</script><img src=x onerror=alert(1)>" }

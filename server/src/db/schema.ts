@@ -24,6 +24,8 @@ export const posts = sqliteTable('posts', {
   content: text('content').notNull(),
   category: text('category').notNull(),
   status: text('status', { enum: ['draft', 'published'] }).notNull().default('draft'),
+  // URL ของรูปปก เช่น /uploads/<ชื่อไฟล์> (ไม่มีรูปปกได้)
+  thumbnail: text('thumbnail'),
   // mode 'timestamp' เก็บเป็นตัวเลขวินาทีในฐานข้อมูล แต่ใช้เป็น Date ในโค้ด
   createdAt: integer('created_at', { mode: 'timestamp' })
     .notNull()
@@ -32,4 +34,19 @@ export const posts = sqliteTable('posts', {
     .notNull()
     .$defaultFn(() => new Date())
     .$onUpdateFn(() => new Date()),
+})
+
+// ตาราง images: ไฟล์รูปที่อัปโหลด เก็บแค่ข้อมูลของไฟล์ ส่วนตัวไฟล์อยู่ในโฟลเดอร์ uploads/
+export const images = sqliteTable('images', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  ownerId: integer('owner_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  // ชื่อไฟล์ที่ server สุ่มขึ้นเอง (ไม่ใช้ชื่อไฟล์จากผู้ใช้)
+  filename: text('filename').notNull().unique(),
+  mimeType: text('mime_type').notNull(),
+  size: integer('size').notNull(),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
 })

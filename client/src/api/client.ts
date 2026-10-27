@@ -20,14 +20,20 @@ interface RequestOptions {
   body?: unknown
 }
 
+// เตรียม body: FormData (อัปโหลดไฟล์) ส่งไปตรง ๆ ให้ browser ตั้ง Content-Type แบบ multipart เอง
+// ข้อมูลอื่นแปลงเป็น JSON
+function toRequestBody(body: unknown): { body?: BodyInit; headers: Record<string, string> } {
+  if (body === undefined) return { headers: {} }
+  if (body instanceof FormData) return { body, headers: {} }
+  return { body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }
+}
+
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const hasBody = options.body !== undefined
   const res = await fetch(`${API_URL}/api${path}`, {
     method: options.method ?? 'GET',
     // ให้ browser แนบ cookie ไปด้วยแม้ client กับ server อยู่คนละ origin
     credentials: 'include',
-    headers: hasBody ? { 'Content-Type': 'application/json' } : {},
-    body: hasBody ? JSON.stringify(options.body) : undefined,
+    ...toRequestBody(options.body),
   })
 
   if (!res.ok) {

@@ -2,6 +2,8 @@
 import { reactive, ref, watch } from 'vue'
 import { z } from 'zod'
 import { postCreateSchema, type Post, type PostCreate, type PostStatus } from '@ssp/shared'
+import ImageUploader from './ImageUploader.vue'
+import RichTextEditor from './RichTextEditor.vue'
 
 const props = defineProps<{
   // บทความที่กำลังแก้ไข (null = เขียนใหม่)
@@ -18,9 +20,16 @@ interface FormState {
   category: string
   status: PostStatus
   content: string
+  thumbnail: string | null
 }
 
-const form = reactive<FormState>({ title: '', category: '', status: 'draft', content: '' })
+const form = reactive<FormState>({
+  title: '',
+  category: '',
+  status: 'draft',
+  content: '',
+  thumbnail: null,
+})
 const errors = ref<Partial<Record<keyof FormState, string[]>>>({})
 
 watch(
@@ -30,6 +39,7 @@ watch(
     form.category = post?.category ?? ''
     form.status = post?.status ?? 'draft'
     form.content = post?.content ?? ''
+    form.thumbnail = post?.thumbnail ?? null
   },
   { immediate: true },
 )
@@ -65,11 +75,25 @@ function onSubmit() {
         <option value="published">เผยแพร่</option>
       </select>
     </label>
-    <label>
+    <div class="field">
+      รูปปก
+      <img v-if="form.thumbnail" :src="form.thumbnail" alt="รูปปก" class="thumbnail" />
+      <div>
+        <ImageUploader
+          :label="form.thumbnail ? 'เปลี่ยนรูปปก' : 'อัปโหลดรูปปก'"
+          @uploaded="form.thumbnail = $event.url"
+        />
+        <button v-if="form.thumbnail" type="button" @click="form.thumbnail = null">
+          เอารูปปกออก
+        </button>
+      </div>
+    </div>
+    <div class="field">
       เนื้อหา
-      <textarea v-model="form.content" rows="12"></textarea>
+      <!-- v-model บน component: ส่ง modelValue เข้าไป และรับ update:modelValue กลับมา -->
+      <RichTextEditor v-model="form.content" />
       <small v-if="errors.content" class="error">{{ errors.content[0] }}</small>
-    </label>
+    </div>
     <div>
       <button type="submit" class="primary" :disabled="saving">บันทึก</button>
     </div>
@@ -79,5 +103,15 @@ function onSubmit() {
 <style scoped>
 .post-form {
   max-width: none;
+}
+
+.field {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.thumbnail {
+  max-width: 240px;
+  border-radius: 6px;
 }
 </style>

@@ -45,19 +45,19 @@ if (admin && !hasPosts) {
   const samplePosts = [
     {
       title: 'ยินดีต้อนรับสู่บล็อก',
-      content: 'บทความแรกของบล็อกนี้ เขียนด้วย Hono, Drizzle และ Vue',
+      content: '<p>บทความแรกของบล็อกนี้ เขียนด้วย <strong>Hono</strong>, Drizzle และ Vue</p>',
       category: 'ข่าวสาร',
       status: 'published' as const,
     },
     {
       title: 'เริ่มต้นเขียน TypeScript ฝั่งเซิร์ฟเวอร์',
-      content: 'Node.js 24 รันไฟล์ .ts ได้โดยตรง โดยไม่ต้องติดตั้งเครื่องมือเพิ่ม',
+      content: '<p>Node.js 24 รันไฟล์ .ts ได้โดยตรง โดยไม่ต้องติดตั้งเครื่องมือเพิ่ม</p>',
       category: 'บทเรียน',
       status: 'published' as const,
     },
     {
       title: 'ฉบับร่าง: แผนบทความถัดไป',
-      content: 'บทความนี้ยังไม่เผยแพร่ ผู้อ่านทั่วไปจึงมองไม่เห็น',
+      content: '<p>บทความนี้ยังไม่เผยแพร่ ผู้อ่านทั่วไปจึงมองไม่เห็น</p>',
       category: 'บทเรียน',
       status: 'draft' as const,
     },

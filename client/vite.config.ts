@@ -10,6 +10,12 @@ export default defineConfig({
     vue(),
     vueDevTools(),
   ],
+  // ระหว่างพัฒนา: ส่งต่อคำขอ /uploads/... ไปที่ server (รูปในบทความใช้ path แบบ /uploads/<ไฟล์>)
+  server: {
+    proxy: {
+      '/uploads': 'http://localhost:8081',
+    },
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),

@@ -4,10 +4,18 @@ import { z } from 'zod'
 export const postStatusSchema = z.enum(['draft', 'published'])
 export type PostStatus = z.infer<typeof postStatusSchema>
 
+// รูปปกต้องเป็นไฟล์ที่อัปโหลดเข้าระบบเท่านั้น (/uploads/<uuid>.<นามสกุล>) หรือไม่มีรูปปก (null)
+export const thumbnailSchema = z
+  .string()
+  .regex(/^\/uploads\/[0-9a-f-]{36}\.(png|jpg|webp|gif)$/)
+  .nullable()
+
 const postFields = {
   title: z.string().trim().min(1).max(200),
+  // เนื้อหาเป็น HTML จาก Rich Text Editor (server sanitize ก่อนบันทึก)
   content: z.string().trim().min(1).max(100_000),
   category: z.string().trim().min(1).max(50),
+  thumbnail: thumbnailSchema.optional(),
 }
 
 export const postCreateSchema = z.object({
@@ -33,6 +41,7 @@ export interface Post {
   content: string
   category: string
   status: PostStatus
+  thumbnail: string | null
   createdAt: string
   updatedAt: string
 }

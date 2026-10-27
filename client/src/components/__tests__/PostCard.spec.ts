@@ -11,6 +11,7 @@ const post: PostSummary = {
   excerpt: 'บทความแรก',
   category: 'ข่าวสาร',
   status: 'published',
+  thumbnail: null,
   createdAt: '2026-10-27T00:00:00.000Z',
   updatedAt: '2026-10-27T00:00:00.000Z',
 }
