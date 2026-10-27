@@ -1,0 +1,15 @@
+{
+  "name": "ssp-2569",
+  "private": true,
+  "description": "โค้ดตัวอย่างประกอบหนังสือ Server Side Programming (273372) ฉบับ 2569",
+  "workspaces": ["shared", "server", "client"],
+  "scripts": {
+    "dev:server": "npm run dev -w @ssp/server",
+    "dev:client": "npm run dev -w @ssp/client",
+    "typecheck": "npm run typecheck -w @ssp/shared -w @ssp/server && npm run type-check -w @ssp/client",
+    "build": "npm run build -w @ssp/client"
+  },
+  "engines": {
+    "node": ">=24.12.0"
+  }
+}

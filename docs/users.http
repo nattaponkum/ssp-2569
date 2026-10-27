@@ -1,0 +1,20 @@
+### ทดสอบ API ด้วย VS Code REST Client หรือ Bruno
+GET http://localhost:8081/hello
+
+###
+GET http://localhost:8081/users
+
+###
+GET http://localhost:8081/user/1
+
+###
+POST http://localhost:8081/user
+Content-Type: application/json
+
+{ "email": "somsri@example.com", "password": "password123", "name": "สมศรี", "lastname": "รักเรียน" }
+
+### ส่งข้อมูลไม่ครบ ต้องได้ 400
+POST http://localhost:8081/user
+Content-Type: application/json
+
+{ "email": "not-an-email" }

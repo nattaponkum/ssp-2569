@@ -1,0 +1,8 @@
+import { serve } from '@hono/node-server'
+import { app } from './app.ts'
+
+const port = Number(process.env.PORT ?? 8081)
+
+serve({ fetch: app.fetch, port }, (info) => {
+  console.log(`Server is running on http://localhost:${info.port}`)
+})
