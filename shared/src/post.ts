@@ -48,3 +48,20 @@ export interface Post {
 
 // บทความในหน้ารายการ: ไม่ส่งเนื้อหาเต็ม ส่งแค่ข้อความย่อ (excerpt)
 export type PostSummary = Omit<Post, 'content'> & { excerpt: string }
+
+// query string ของ GET /api/posts (ค่าใน URL เป็น string เสมอ จึงใช้ z.coerce แปลงเป็นตัวเลข)
+export const postQuerySchema = z.object({
+  search: z.string().trim().max(100).optional(),
+  category: z.string().trim().max(50).optional(),
+  // id ของบทความสุดท้ายที่ได้ไปแล้ว หน้าถัดไปจะเริ่มจากบทความที่ id น้อยกว่านี้
+  cursor: z.coerce.number().int().positive().optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(10),
+})
+
+export type PostQuery = z.input<typeof postQuerySchema>
+
+// ผลลัพธ์แบบแบ่งหน้า: nextCursor เป็น null เมื่อไม่มีหน้าถัดไปแล้ว
+export interface PostPage {
+  items: PostSummary[]
+  nextCursor: number | null
+}

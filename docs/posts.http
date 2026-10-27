@@ -5,6 +5,24 @@
 ### รายการบทความที่เผยแพร่แล้ว (ไม่ต้อง login)
 GET {{baseUrl}}/posts
 
+### (บทที่ 14) แบ่งหน้า: หน้าแรก 2 เรื่อง คำตอบมี { items, nextCursor }
+GET {{baseUrl}}/posts?limit=2
+
+### (บทที่ 14) หน้าถัดไป: ส่ง nextCursor จากคำตอบก่อนหน้าเป็น cursor
+GET {{baseUrl}}/posts?limit=2&cursor=2
+
+### (บทที่ 14) ค้นหาในชื่อเรื่องและเนื้อหา พร้อมกรองหมวดหมู่
+GET {{baseUrl}}/posts?search=TypeScript&category=บทเรียน
+
+### (บทที่ 14) ค้นหา % ต้องค้นเป็นตัวอักษร % จริง ไม่ได้ทุกบทความ (%25 คือ % ที่เข้ารหัสใน URL)
+GET {{baseUrl}}/posts?search=%25
+
+### (บทที่ 14) limit เกิน 50 ต้องได้ 400
+GET {{baseUrl}}/posts?limit=100
+
+### (บทที่ 14) หมวดหมู่ทั้งหมดที่มีบทความเผยแพร่
+GET {{baseUrl}}/categories
+
 ### อ่านบทความเรื่องเดียว (ฉบับร่างจะได้ 404)
 GET {{baseUrl}}/posts/1
 

@@ -1,4 +1,4 @@
-import { and, desc, eq } from 'drizzle-orm'
+import { and, desc, eq, lt, or, sql, type SQL } from 'drizzle-orm'
 import type { PostCreate, PostUpdate } from '@ssp/shared'
 import type { Db } from '../db/client.ts'
 import { posts, users } from '../db/schema.ts'
@@ -26,6 +26,24 @@ function toSummary<T extends { content: string }>({ content, ...rest }: T) {
   return { ...rest, excerpt: htmlToText(content).slice(0, EXCERPT_LENGTH) }
 }
 
+// ใน LIKE ตัว % และ _ เป็นอักขระพิเศษ (แทนอะไรก็ได้) ต้อง escape ด้วย \ ก่อน
+// ไม่เช่นนั้นผู้ใช้ค้นหา "%" จะได้บทความทั้งหมด
+function escapeLike(text: string): string {
+  return text.replace(/[\\%_]/g, (ch) => `\\${ch}`)
+}
+
+// เงื่อนไข "คอลัมน์มีคำนี้อยู่" แบบ escape แล้ว
+function contains(column: typeof posts.title | typeof posts.content, text: string): SQL {
+  return sql`${column} LIKE ${`%${escapeLike(text)}%`} ESCAPE '\\'`
+}
+
+export interface ListOptions {
+  search?: string
+  category?: string
+  cursor?: number
+  limit: number
+}
+
 // sanitize ซ้ำตอนอ่านอีกชั้น (defense in depth) เผื่อข้อมูลเก่าที่บันทึกไว้ก่อนมีการ sanitize
 function withSafeContent<T extends { content: string }>(post: T | undefined): T | undefined {
   return post && { ...post, content: sanitizePostHtml(post.content) }
@@ -48,10 +66,31 @@ export class PostService {
       .$dynamic()
   }
 
-  // สำหรับผู้อ่านทั่วไป: เฉพาะบทความที่เผยแพร่แล้ว
-  async listPublished() {
-    const rows = await this.selectPosts().where(eq(posts.status, 'published'))
-    return rows.map(toSummary)
+  // สำหรับผู้อ่านทั่วไป: เฉพาะบทความที่เผยแพร่แล้ว พร้อมค้นหา กรองหมวดหมู่ และแบ่งหน้าแบบ cursor
+  async listPublished({ search, category, cursor, limit }: ListOptions) {
+    // รวมเงื่อนไขเฉพาะที่ผู้ใช้ส่งมา (and() ข้ามค่า undefined ให้เอง)
+    const where = and(
+      eq(posts.status, 'published'),
+      search ? or(contains(posts.title, search), contains(posts.content, search)) : undefined,
+      category ? eq(posts.category, category) : undefined,
+      cursor ? lt(posts.id, cursor) : undefined,
+    )
+
+    // ขอเกินมา 1 แถว เพื่อรู้ว่ายังมีหน้าถัดไปหรือไม่
+    const rows = await this.selectPosts().where(where).limit(limit + 1)
+    const hasMore = rows.length > limit
+    const items = rows.slice(0, limit).map(toSummary)
+    return { items, nextCursor: hasMore ? items[items.length - 1]!.id : null }
+  }
+
+  // หมวดหมู่ทั้งหมดที่มีบทความเผยแพร่แล้ว (ไม่ซ้ำ เรียงตามตัวอักษร)
+  async listCategories(): Promise<string[]> {
+    const rows = await this.db
+      .selectDistinct({ category: posts.category })
+      .from(posts)
+      .where(eq(posts.status, 'published'))
+      .orderBy(posts.category)
+    return rows.map((row) => row.category)
   }
 
   async findPublishedById(id: number) {

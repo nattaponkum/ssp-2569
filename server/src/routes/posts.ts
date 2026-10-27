@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { idParamSchema, postCreateSchema, postUpdateSchema } from '@ssp/shared'
+import { idParamSchema, postCreateSchema, postQuerySchema, postUpdateSchema } from '@ssp/shared'
 import { db } from '../db/client.ts'
 import { zValidator } from '../lib/validator.ts'
 import { requireAuth } from '../middlewares/auth.ts'
@@ -12,8 +12,9 @@ const FORBIDDEN = 'แก้ไขได้เฉพาะบทความข�
 
 // /api/posts: อ่านได้ทุกคน (เฉพาะที่เผยแพร่แล้ว) ส่วนการสร้าง แก้ไข ลบ ต้อง login
 export const postsRoute = new Hono()
-  .get('/', async (c) => {
-    return c.json(await postService.listPublished())
+  // ?search=คำค้น&category=หมวด&cursor=id&limit=10
+  .get('/', zValidator('query', postQuerySchema), async (c) => {
+    return c.json(await postService.listPublished(c.req.valid('query')))
   })
 
   .get('/:id', zValidator('param', idParamSchema), async (c) => {
@@ -53,6 +54,11 @@ export const postsRoute = new Hono()
     await postService.remove(id)
     return c.body(null, 204)
   })
+
+// /api/categories: รายชื่อหมวดหมู่สำหรับเมนู
+export const categoriesRoute = new Hono().get('/', async (c) => {
+  return c.json(await postService.listCategories())
+})
 
 // /api/admin/posts: หน้าจัดการบทความ เห็นฉบับร่างด้วย (admin เห็นทั้งหมด ผู้ใช้ทั่วไปเห็นของตัวเอง)
 export const adminPostsRoute = new Hono()

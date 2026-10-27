@@ -6,7 +6,7 @@ import { csrf } from 'hono/csrf'
 import { HTTPException } from 'hono/http-exception'
 import { config } from './config.ts'
 import { authRoute } from './routes/auth.ts'
-import { adminPostsRoute, postsRoute } from './routes/posts.ts'
+import { adminPostsRoute, categoriesRoute, postsRoute } from './routes/posts.ts'
 import { uploadsRoute } from './routes/uploads.ts'
 import { usersRoute } from './routes/users.ts'
 
@@ -21,6 +21,7 @@ export const app = new Hono()
   .route('/api/auth', authRoute)
   .route('/api/users', usersRoute)
   .route('/api/posts', postsRoute)
+  .route('/api/categories', categoriesRoute)
   .route('/api/admin/posts', adminPostsRoute)
   .route('/api/uploads', uploadsRoute)
 

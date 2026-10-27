@@ -44,9 +44,9 @@ describe('อ่านบทความแบบสาธารณะ', () => {
 
     const res = await send('GET', '/api/posts')
     expect(res.status).toBe(200)
-    const list = await res.json()
-    expect(list.length).toBeGreaterThan(0)
-    for (const post of list) {
+    const { items } = await res.json()
+    expect(items.length).toBeGreaterThan(0)
+    for (const post of items) {
       expect(post.status).toBe('published')
       expect(post).toHaveProperty('excerpt')
       expect(post).not.toHaveProperty('content')
@@ -120,8 +120,8 @@ describe('เนื้อหา HTML และรูปปก (บทที่ 1
     })
     expect(post.content).toBe('<p>สวัสดี</p><img src="x" />')
 
-    const list = await (await send('GET', '/api/posts')).json()
-    const summary = list.find((p: { id: number }) => p.id === post.id)
+    const { items } = await (await send('GET', '/api/posts')).json()
+    const summary = items.find((p: { id: number }) => p.id === post.id)
     expect(summary.excerpt).toBe('สวัสดี')
   })
 
@@ -133,5 +133,44 @@ describe('เนื้อหา HTML และรูปปก (บทที่ 1
     const good = await createPost(author, { ...draft, thumbnail })
     expect(good.res.status).toBe(201)
     expect(good.post.thumbnail).toBe(thumbnail)
+  })
+})
+
+describe('ค้นหา หมวดหมู่ และแบ่งหน้า (บทที่ 14)', () => {
+  // บทความในหมวดเฉพาะของ test นี้ 3 เรื่อง
+  beforeAll(async () => {
+    for (const title of ['หน้า A', 'หน้า B 100%', 'หน้า C']) {
+      await createPost(author, { ...published, title, category: 'แบ่งหน้า' })
+    }
+  })
+
+  it('limit=2 ได้ 2 เรื่องพร้อม nextCursor แล้วหน้าถัดไปได้เรื่องที่เหลือ', async () => {
+    const first = await (await send('GET', '/api/posts?category=แบ่งหน้า&limit=2')).json()
+    expect(first.items.map((p: { title: string }) => p.title)).toEqual(['หน้า C', 'หน้า B 100%'])
+    expect(first.nextCursor).toBe(first.items[1].id)
+
+    const url = `/api/posts?category=แบ่งหน้า&limit=2&cursor=${first.nextCursor}`
+    const second = await (await send('GET', url)).json()
+    expect(second.items.map((p: { title: string }) => p.title)).toEqual(['หน้า A'])
+    expect(second.nextCursor).toBeNull()
+  })
+
+  it('ค้นหาจากชื่อเรื่อง และ % ถูกค้นเป็นตัวอักษรธรรมดา (ไม่ได้แปลว่า "อะไรก็ได้")', async () => {
+    const percent = await (await send('GET', '/api/posts?search=%25')).json()
+    expect(percent.items.map((p: { title: string }) => p.title)).toEqual(['หน้า B 100%'])
+
+    const none = await (await send('GET', '/api/posts?search=ไม่มีคำนี้แน่นอน')).json()
+    expect(none.items).toEqual([])
+  })
+
+  it('limit เกิน 50 หรือ cursor ไม่ใช่ตัวเลขได้ 400', async () => {
+    expect((await send('GET', '/api/posts?limit=51')).status).toBe(400)
+    expect((await send('GET', '/api/posts?cursor=abc')).status).toBe(400)
+  })
+
+  it('GET /api/categories คืนหมวดหมู่ที่มีบทความเผยแพร่ ไม่ซ้ำกัน', async () => {
+    const categories = await (await send('GET', '/api/categories')).json()
+    expect(categories).toContain('แบ่งหน้า')
+    expect(new Set(categories).size).toBe(categories.length)
   })
 })
