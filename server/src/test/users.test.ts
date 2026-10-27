@@ -18,6 +18,26 @@ describe('GET /api/hello', () => {
   })
 })
 
+describe('CORS', () => {
+  it('อนุญาต origin ของ client และส่ง cookie ข้าม origin ได้', async () => {
+    const res = await app.request('/api/users', {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'http://localhost:5173',
+        'Access-Control-Request-Method': 'POST',
+      },
+    })
+    expect(res.status).toBe(204)
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('http://localhost:5173')
+    expect(res.headers.get('Access-Control-Allow-Credentials')).toBe('true')
+  })
+
+  it('ไม่อนุญาต origin อื่น', async () => {
+    const res = await app.request('/api/users', { headers: { Origin: 'https://evil.example' } })
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBeNull()
+  })
+})
+
 describe('/api/users', () => {
   it('GET คืนรายชื่อผู้ใช้เป็น array', async () => {
     const res = await app.request('/api/users')

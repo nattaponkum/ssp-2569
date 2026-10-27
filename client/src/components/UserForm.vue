@@ -1,19 +1,24 @@
 <script setup lang="ts">
-import { reactive, watch } from 'vue'
-import type { User, UserInput } from '@/types'
+import { reactive, ref, watch } from 'vue'
+import { z } from 'zod'
+import { userCreateSchema, type User, type UserCreate } from '@ssp/shared'
 
 const props = defineProps<{
   // ผู้ใช้ที่กำลังแก้ไข (null = สร้างใหม่)
   user: User | null
+  // กำลังส่งข้อมูลไป server อยู่หรือไม่ (ปิดปุ่มกันกดซ้ำ)
+  saving?: boolean
 }>()
 
 const emit = defineEmits<{
-  submit: [data: UserInput]
+  submit: [data: UserCreate]
   cancel: []
 }>()
 
 // reactive: object ที่ Vue ติดตามการเปลี่ยนแปลง ผูกกับ input ด้วย v-model
-const form = reactive<UserInput>({ email: '', name: '', lastname: '' })
+const form = reactive<UserCreate>({ email: '', name: '', lastname: '' })
+// ข้อความ error รายฟิลด์ เช่น { email: ['...'] }
+const errors = ref<Partial<Record<keyof UserCreate, string[]>>>({})
 
 // เมื่อ parent เปลี่ยนผู้ใช้ที่จะแก้ไข ให้เติมค่าลงฟอร์มใหม่
 watch(
@@ -22,32 +27,44 @@ watch(
     form.email = user?.email ?? ''
     form.name = user?.name ?? ''
     form.lastname = user?.lastname ?? ''
+    errors.value = {}
   },
   { immediate: true },
 )
 
 function onSubmit() {
-  // ส่งสำเนาออกไป ไม่ส่ง object ของฟอร์มเอง
-  emit('submit', { ...form })
+  // ตรวจด้วย schema เดียวกับที่ server ใช้ ผู้ใช้จึงเห็น error ทันทีโดยไม่ต้องรอ server
+  const result = userCreateSchema.safeParse(form)
+  if (!result.success) {
+    errors.value = z.flattenError(result.error).fieldErrors
+    return
+  }
+  errors.value = {}
+  emit('submit', result.data)
 }
 </script>
 
 <template>
-  <form @submit.prevent="onSubmit">
+  <form novalidate @submit.prevent="onSubmit">
     <label>
       อีเมล
-      <input v-model="form.email" type="email" required />
+      <input v-model="form.email" type="email" />
+      <small v-if="errors.email" class="error">{{ errors.email[0] }}</small>
     </label>
     <label>
       ชื่อ
-      <input v-model="form.name" required />
+      <input v-model="form.name" />
+      <small v-if="errors.name" class="error">{{ errors.name[0] }}</small>
     </label>
     <label>
       นามสกุล
-      <input v-model="form.lastname" required />
+      <input v-model="form.lastname" />
+      <small v-if="errors.lastname" class="error">{{ errors.lastname[0] }}</small>
     </label>
     <div>
-      <button type="submit" class="primary">{{ user ? 'บันทึกการแก้ไข' : 'เพิ่มผู้ใช้' }}</button>
+      <button type="submit" class="primary" :disabled="saving">
+        {{ user ? 'บันทึกการแก้ไข' : 'เพิ่มผู้ใช้' }}
+      </button>
       <button v-if="user" type="button" @click="emit('cancel')">ยกเลิก</button>
     </div>
   </form>

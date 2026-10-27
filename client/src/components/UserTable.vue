@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { User } from '@/types'
+import type { User } from '@ssp/shared'
 
 // props: ข้อมูลที่ parent ส่งเข้ามา (component นี้ไม่แก้ไข props เอง)
 defineProps<{
