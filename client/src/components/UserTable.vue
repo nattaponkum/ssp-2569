@@ -21,6 +21,7 @@ const emit = defineEmits<{
         <th>อีเมล</th>
         <th>ชื่อ</th>
         <th>นามสกุล</th>
+        <th>บทบาท</th>
         <th></th>
       </tr>
     </thead>
@@ -30,13 +31,14 @@ const emit = defineEmits<{
         <td>{{ user.email }}</td>
         <td>{{ user.name }}</td>
         <td>{{ user.lastname }}</td>
+        <td>{{ user.role }}</td>
         <td>
           <button type="button" @click="emit('edit', user)">แก้ไข</button>
           <button type="button" class="danger" @click="emit('delete', user.id)">ลบ</button>
         </td>
       </tr>
       <tr v-if="users.length === 0">
-        <td colspan="5" class="muted">ยังไม่มีผู้ใช้</td>
+        <td colspan="6" class="muted">ยังไม่มีผู้ใช้</td>
       </tr>
     </tbody>
   </table>

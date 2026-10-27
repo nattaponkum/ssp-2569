@@ -1,0 +1,37 @@
+### ทดสอบการพิสูจน์ตัวตน (บทที่ 10) ด้วย VS Code REST Client
+### server ต้องมีไฟล์ server/.env (ดู server/.env.example) และรัน npm run db:seed แล้ว
+@baseUrl = http://localhost:8081/api
+
+### สมัครสมาชิก ต้องได้ 201 และ Set-Cookie: token=...; HttpOnly
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{ "email": "reader@example.com", "name": "ผู้อ่าน", "lastname": "ทดลอง", "password": "password1234" }
+
+### ข้อมูลผู้ใช้ที่ login อยู่ (REST Client ส่ง cookie จากคำขอก่อนหน้าให้เอง)
+GET {{baseUrl}}/auth/me
+
+### ผู้ใช้ทั่วไปเรียก /api/users ต้องได้ 403
+GET {{baseUrl}}/users
+
+### login เป็น admin (ใช้อีเมลและรหัสผ่านตาม ADMIN_EMAIL / ADMIN_PASSWORD ใน server/.env)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@example.com", "password": "ใส่รหัสผ่านของ admin" }
+
+### admin เรียก /api/users ได้ 200
+GET {{baseUrl}}/users
+
+### รหัสผ่านผิด ต้องได้ 401
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{ "email": "admin@example.com", "password": "wrong-password" }
+
+### ออกจากระบบ ต้องได้ 204 และ cookie ถูกลบ
+POST {{baseUrl}}/auth/logout
+Origin: http://localhost:5173
+
+### หลัง logout เรียก /me ต้องได้ 401
+GET {{baseUrl}}/auth/me

@@ -1,5 +1,7 @@
 ### ทดสอบ API ด้วย VS Code REST Client (คลิก "Send Request" เหนือแต่ละคำขอ)
 ### ก่อนทดสอบ (บทที่ 6 เป็นต้นไป) ให้รัน npm run db:migrate และ npm run db:seed หนึ่งครั้ง
+### บทที่ 10 เป็นต้นไป /api/users ใช้ได้เฉพาะ admin: ส่งคำขอ "login เป็น admin" ใน auth.http ก่อน
+### (REST Client จำ cookie ให้อัตโนมัติ)
 @baseUrl = http://localhost:8081/api
 
 GET {{baseUrl}}/hello
@@ -14,7 +16,7 @@ GET {{baseUrl}}/users/1
 POST {{baseUrl}}/users
 Content-Type: application/json
 
-{ "email": "malee@example.com", "name": "มาลี", "lastname": "สุขใจ" }
+{ "email": "malee@example.com", "name": "มาลี", "lastname": "สุขใจ", "password": "password1234" }
 
 ### แก้ไขบางฟิลด์
 PATCH {{baseUrl}}/users/1
@@ -23,7 +25,9 @@ Content-Type: application/json
 { "name": "สมชาย (แก้ไข)" }
 
 ### ลบผู้ใช้ ต้องได้ 204 No Content
+### (คำขอที่ไม่มี body ต้องส่ง Origin มาด้วย ไม่เช่นนั้น CSRF middleware ตอบ 403)
 DELETE {{baseUrl}}/users/2
+Origin: http://localhost:5173
 
 ### ส่งข้อมูลไม่ครบ ต้องได้ 400
 POST {{baseUrl}}/users
@@ -44,7 +48,7 @@ Content-Type: application/json
 POST {{baseUrl}}/users
 Content-Type: application/json
 
-{ "email": "somchai@example.com", "name": "สมชาย", "lastname": "ซ้ำ" }
+{ "email": "somchai@example.com", "name": "สมชาย", "lastname": "ซ้ำ", "password": "password1234" }
 
 ### (บทที่ 7) id ไม่ใช่ตัวเลข ต้องได้ 400
 GET {{baseUrl}}/users/abc

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import type { User, UserCreate } from '@ssp/shared'
+import type { User, UserCreate, UserUpdate } from '@ssp/shared'
 import { usersApi } from '@/api/users'
 import UserForm from '@/components/UserForm.vue'
 import UserTable from '@/components/UserTable.vue'
@@ -29,17 +29,13 @@ async function load() {
   }
 }
 
-async function save(data: UserCreate) {
+// เรียกเว็บเซอร์วิสเพื่อบันทึก แล้วโหลดรายการใหม่ (ใช้ร่วมกันทั้งสร้างและแก้ไข)
+async function save(request: () => Promise<User>, message: string) {
   saving.value = true
   error.value = ''
   try {
-    if (editing.value) {
-      await usersApi.update(editing.value.id, data)
-      ui.notify('แก้ไขผู้ใช้แล้ว')
-    } else {
-      await usersApi.create(data)
-      ui.notify('เพิ่มผู้ใช้แล้ว')
-    }
+    await request()
+    ui.notify(message)
     editing.value = null
     formKey.value++
     await load()
@@ -49,6 +45,15 @@ async function save(data: UserCreate) {
   } finally {
     saving.value = false
   }
+}
+
+function create(data: UserCreate) {
+  return save(() => usersApi.create(data), 'เพิ่มผู้ใช้แล้ว')
+}
+
+function update(data: UserUpdate) {
+  const id = editing.value!.id
+  return save(() => usersApi.update(id, data), 'แก้ไขผู้ใช้แล้ว')
 }
 
 async function remove(id: number) {
@@ -78,7 +83,8 @@ onMounted(load)
       :key="formKey"
       :user="editing"
       :saving="saving"
-      @submit="save"
+      @create="create"
+      @update="update"
       @cancel="editing = null"
     />
   </section>

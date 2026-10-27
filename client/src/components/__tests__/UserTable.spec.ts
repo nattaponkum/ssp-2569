@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
+import type { User } from '@ssp/shared'
 import UserTable from '../UserTable.vue'
 
-const users = [
-  { id: 1, email: 'somchai@example.com', name: 'สมชาย', lastname: 'ใจดี' },
-  { id: 2, email: 'somsri@example.com', name: 'สมศรี', lastname: 'รักเรียน' },
+const users: User[] = [
+  { id: 1, email: 'somchai@example.com', name: 'สมชาย', lastname: 'ใจดี', role: 'admin' },
+  { id: 2, email: 'somsri@example.com', name: 'สมศรี', lastname: 'รักเรียน', role: 'user' },
 ]
 
 describe('UserTable', () => {

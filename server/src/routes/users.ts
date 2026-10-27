@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { idParamSchema, userCreateSchema, userUpdateSchema } from '@ssp/shared'
 import { db } from '../db/client.ts'
 import { zValidator } from '../lib/validator.ts'
+import { requireAuth, requireRole } from '../middlewares/auth.ts'
 import { UserService, type UserRepository } from '../services/UserService.ts'
 
 // Model: service ที่ดูแลข้อมูลผู้ใช้ (สร้างครั้งเดียว ใช้ร่วมกันทุก request)
@@ -13,6 +14,8 @@ const EMAIL_TAKEN = 'อีเมลนี้ถูกใช้แล้ว'
 // zValidator ตรวจข้อมูลก่อนถึง handler ถ้าไม่ผ่านจะตอบ 400 ทันที
 // c.req.valid() จึงได้ข้อมูลที่ผ่านการตรวจและมีชนิดถูกต้องแล้ว
 export const usersRoute = new Hono()
+  // ทุก endpoint ในไฟล์นี้: ต้อง login และต้องเป็น admin
+  .use(requireAuth, requireRole('admin'))
   .get('/', async (c) => {
     return c.json(await userService.findAll())
   })
@@ -50,6 +53,8 @@ export const usersRoute = new Hono()
 
   .delete('/:id', zValidator('param', idParamSchema), async (c) => {
     const { id } = c.req.valid('param')
+    // กัน admin ลบบัญชีตัวเองจนไม่เหลือใครดูแลระบบ
+    if (id === c.get('user').id) return c.json({ error: 'ลบบัญชีของตัวเองไม่ได้' }, 400)
     const deleted = await userService.remove(id)
     if (!deleted) return c.json({ error: 'ไม่พบผู้ใช้' }, 404)
     return c.body(null, 204)

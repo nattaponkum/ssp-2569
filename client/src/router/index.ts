@@ -6,6 +6,11 @@ const router = createRouter({
   routes: [
     { path: '/', name: 'home', component: HomeView },
     {
+      path: '/login',
+      name: 'login',
+      component: () => import('@/views/admin/LoginView.vue'),
+    },
+    {
       path: '/admin/users',
       name: 'admin-users',
       // โหลดเมื่อเข้าหน้านี้ครั้งแรก (lazy loading) ไฟล์ JS ของหน้าแรกจึงเล็กลง
