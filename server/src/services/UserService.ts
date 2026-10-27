@@ -11,6 +11,7 @@ export type NewUser = Omit<typeof users.$inferInsert, 'id'>
 export interface UserRepository {
   findAll(): Promise<User[]>
   findById(id: number): Promise<User | undefined>
+  findByEmail(email: string): Promise<User | undefined>
   create(data: NewUser): Promise<User>
   update(id: number, data: Partial<NewUser>): Promise<User | undefined>
   remove(id: number): Promise<boolean>
@@ -31,6 +32,10 @@ export class UserService implements UserRepository {
 
   async findById(id: number): Promise<User | undefined> {
     return this.db.select().from(users).where(eq(users.id, id)).get()
+  }
+
+  async findByEmail(email: string): Promise<User | undefined> {
+    return this.db.select().from(users).where(eq(users.email, email)).get()
   }
 
   async create(data: NewUser): Promise<User> {

@@ -49,14 +49,73 @@ describe('/api/users', () => {
     expect(missing.status).toBe(404)
   })
 
-  it('POST ที่ข้อมูลไม่ครบได้ 400', async () => {
+  it('PATCH และ DELETE ผู้ใช้ที่ไม่มีอยู่ได้ 404', async () => {
+    expect((await sendJson('PATCH', '/api/users/999', { name: 'x' })).status).toBe(404)
+    expect((await app.request('/api/users/999', { method: 'DELETE' })).status).toBe(404)
+  })
+})
+
+describe('การตรวจสอบ input ด้วย Zod', () => {
+  it('POST ที่ข้อมูลไม่ครบได้ 400 พร้อมรายการ issues', async () => {
     const res = await sendJson('POST', '/api/users', { email: 'x@example.com' })
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toBe('Invalid input')
+    expect(body.issues.map((i: { path: string[] }) => i.path[0])).toEqual(['name', 'lastname'])
+  })
+
+  it('อีเมลผิดรูปแบบได้ 400', async () => {
+    const res = await sendJson('POST', '/api/users', { email: 'abc', name: 'A', lastname: 'B' })
+    expect(res.status).toBe(400)
+  })
+
+  it('id ที่ไม่ใช่ตัวเลขได้ 400', async () => {
+    const res = await app.request('/api/users/abc')
+    expect(res.status).toBe(400)
+  })
+
+  it('PATCH ที่ไม่มีฟิลด์ใดเลยได้ 400', async () => {
+    const res = await sendJson('PATCH', '/api/users/1', {})
+    expect(res.status).toBe(400)
+  })
+
+  it('JSON ผิดรูปแบบได้ 400 รูปแบบ { error }', async () => {
+    const res = await app.request('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{ not json',
+    })
     expect(res.status).toBe(400)
     expect(await res.json()).toHaveProperty('error')
   })
 
-  it('PATCH และ DELETE ผู้ใช้ที่ไม่มีอยู่ได้ 404', async () => {
-    expect((await sendJson('PATCH', '/api/users/999', { name: 'x' })).status).toBe(404)
-    expect((await app.request('/api/users/999', { method: 'DELETE' })).status).toBe(404)
+  it('ฟิลด์แปลกปลอม (เช่น id) ถูกตัดทิ้ง', async () => {
+    const res = await sendJson('POST', '/api/users', {
+      id: 500,
+      email: 'extra@example.com',
+      name: 'E',
+      lastname: 'X',
+    })
+    expect(res.status).toBe(201)
+    expect((await res.json()).id).not.toBe(500)
+  })
+
+  it('อีเมลซ้ำได้ 409 Conflict ทั้งตอนสร้างและแก้ไข', async () => {
+    const data = { email: 'dup@example.com', name: 'D', lastname: 'U' }
+    expect((await sendJson('POST', '/api/users', data)).status).toBe(201)
+    expect((await sendJson('POST', '/api/users', data)).status).toBe(409)
+
+    const other = await (
+      await sendJson('POST', '/api/users', { ...data, email: 'other@example.com' })
+    ).json()
+    const res = await sendJson('PATCH', `/api/users/${other.id}`, { email: 'dup@example.com' })
+    expect(res.status).toBe(409)
+  })
+
+  it('path ที่ไม่มีอยู่ได้ 404 รูปแบบ { error }', async () => {
+    const res = await app.request('/api/nope')
+    expect(res.status).toBe(404)
+    expect(await res.json()).toHaveProperty('error')
+
   })
 })
