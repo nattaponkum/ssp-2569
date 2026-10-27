@@ -1,0 +1,31 @@
+### ทดสอบเว็บเซอร์วิสบทความ (บทที่ 12) ด้วย VS Code REST Client
+### ส่วนที่ต้อง login: ส่งคำขอ "login เป็น admin" ใน auth.http ก่อน (REST Client จำ cookie ให้)
+@baseUrl = http://localhost:8081/api
+
+### รายการบทความที่เผยแพร่แล้ว (ไม่ต้อง login)
+GET {{baseUrl}}/posts
+
+### อ่านบทความเรื่องเดียว (ฉบับร่างจะได้ 404)
+GET {{baseUrl}}/posts/1
+
+### เขียนบทความใหม่ ต้อง login (ไม่ login ได้ 401)
+POST {{baseUrl}}/posts
+Content-Type: application/json
+
+{ "title": "บทความทดสอบ", "content": "เนื้อหาบทความ", "category": "บทเรียน", "status": "draft" }
+
+### แก้ไขบางฟิลด์ (เจ้าของหรือ admin เท่านั้น คนอื่นได้ 403)
+PATCH {{baseUrl}}/posts/1
+Content-Type: application/json
+
+{ "status": "published" }
+
+### รายการสำหรับหน้าจัดการ (รวมฉบับร่าง admin เห็นทั้งหมด ผู้ใช้ทั่วไปเห็นของตัวเอง)
+GET {{baseUrl}}/admin/posts
+
+### อ่านบทความเพื่อนำไปแก้ไข (รวมฉบับร่าง)
+GET {{baseUrl}}/admin/posts/3
+
+### ลบบทความ (คำขอที่ไม่มี body ต้องส่ง Origin มาด้วย)
+DELETE {{baseUrl}}/posts/3
+Origin: http://localhost:5173

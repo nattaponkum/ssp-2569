@@ -4,6 +4,7 @@ import { csrf } from 'hono/csrf'
 import { HTTPException } from 'hono/http-exception'
 import { config } from './config.ts'
 import { authRoute } from './routes/auth.ts'
+import { adminPostsRoute, postsRoute } from './routes/posts.ts'
 import { usersRoute } from './routes/users.ts'
 
 // ทุก endpoint อยู่ใต้ /api ส่วน route ของแต่ละ resource แยกไว้ใน routes/
@@ -16,6 +17,8 @@ export const app = new Hono()
   .get('/api/hello', (c) => c.json({ message: 'Hello Hono server' }))
   .route('/api/auth', authRoute)
   .route('/api/users', usersRoute)
+  .route('/api/posts', postsRoute)
+  .route('/api/admin/posts', adminPostsRoute)
 
 // ไม่พบ route ที่ตรงกัน: ตอบ 404 รูปแบบเดียวกับ error อื่น
 app.notFound((c) => c.json({ error: 'ไม่พบ endpoint นี้' }, 404))

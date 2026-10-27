@@ -12,3 +12,24 @@ export const users = sqliteTable('users', {
   passwordHash: text('password_hash').notNull().default(''),
   role: text('role', { enum: ['user', 'admin'] }).notNull().default('user'),
 })
+
+// ตาราง posts: บทความหนึ่งเรื่องมีผู้เขียนหนึ่งคน (foreign key ไปที่ users.id)
+export const posts = sqliteTable('posts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  // ลบผู้ใช้แล้วบทความของผู้ใช้นั้นถูกลบตามไปด้วย (cascade)
+  authorId: integer('author_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  title: text('title').notNull(),
+  content: text('content').notNull(),
+  category: text('category').notNull(),
+  status: text('status', { enum: ['draft', 'published'] }).notNull().default('draft'),
+  // mode 'timestamp' เก็บเป็นตัวเลขวินาทีในฐานข้อมูล แต่ใช้เป็น Date ในโค้ด
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .notNull()
+    .$defaultFn(() => new Date())
+    .$onUpdateFn(() => new Date()),
+})

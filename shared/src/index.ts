@@ -6,3 +6,4 @@ z.config(z.locales.th())
 // schema และ type ที่ใช้ร่วมกันระหว่าง server และ client
 export * from './user.ts'
 export * from './auth.ts'
+export * from './post.ts'

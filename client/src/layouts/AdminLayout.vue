@@ -12,6 +12,7 @@ const auth = useAuthStore()
   <div class="admin container">
     <aside>
       <strong>จัดการระบบ</strong>
+      <RouterLink :to="{ name: 'admin-posts' }">บทความ</RouterLink>
       <RouterLink v-if="auth.isAdmin" :to="{ name: 'admin-users' }">ผู้ใช้</RouterLink>
     </aside>
     <main>

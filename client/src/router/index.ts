@@ -25,6 +25,13 @@ const router = createRouter({
       children: [
         { path: '', name: 'home', component: HomeView },
         {
+          path: 'posts/:id',
+          name: 'post',
+          component: () => import('@/views/public/PostView.vue'),
+          // ส่ง params เข้า component เป็น props (เช่น id)
+          props: true,
+        },
+        {
           path: 'login',
           name: 'login',
           component: () => import('@/views/admin/LoginView.vue'),
@@ -42,7 +49,23 @@ const router = createRouter({
       component: AdminLayout,
       meta: { requiresAuth: true },
       children: [
-        { path: '', redirect: { name: 'admin-users' } },
+        { path: '', redirect: { name: 'admin-posts' } },
+        {
+          path: 'posts',
+          name: 'admin-posts',
+          component: () => import('@/views/admin/PostsView.vue'),
+        },
+        {
+          path: 'posts/new',
+          name: 'admin-post-new',
+          component: () => import('@/views/admin/PostEditView.vue'),
+        },
+        {
+          path: 'posts/:id/edit',
+          name: 'admin-post-edit',
+          component: () => import('@/views/admin/PostEditView.vue'),
+          props: true,
+        },
         {
           path: 'users',
           name: 'admin-users',

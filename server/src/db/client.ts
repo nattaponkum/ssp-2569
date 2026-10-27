@@ -10,6 +10,8 @@ const url = process.env.DATABASE_URL ?? './data/app.sqlite'
 if (url !== ':memory:') mkdirSync(dirname(url), { recursive: true })
 
 const sqlite = new Database(url)
+// ให้ SQLite ตรวจ foreign key (เช่น posts.author_id ต้องมีอยู่จริงใน users)
+sqlite.pragma('foreign_keys = ON')
 
 export const db = drizzle({ client: sqlite })
 export type Db = typeof db
