@@ -1,10 +1,9 @@
 import { Hono } from 'hono'
+import { db } from '../db/client.ts'
 import { UserService, type NewUser, type UserRepository } from '../services/UserService.ts'
 
 // Model: service ที่ดูแลข้อมูลผู้ใช้ (สร้างครั้งเดียว ใช้ร่วมกันทุก request)
-const userService: UserRepository = new UserService([
-  { email: 'somchai@example.com', name: 'สมชาย', lastname: 'ใจดี' },
-])
+const userService: UserRepository = new UserService(db)
 
 // Controller: รับ request ตรวจ input เรียก service แล้วตอบ JSON
 // path ในไฟล์นี้เป็น path ย่อย เพราะ app.ts mount ไว้ที่ /api/users
@@ -34,7 +33,12 @@ export const usersRoute = new Hono()
 
   .patch('/:id', async (c) => {
     const body = await c.req.json<Partial<NewUser>>()
-    const user = await userService.update(Number(c.req.param('id')), body)
+    // ส่งเฉพาะฟิลด์ที่อนุญาตให้แก้ ไม่ส่ง body ทั้งก้อน (กันการแก้ id)
+    const user = await userService.update(Number(c.req.param('id')), {
+      email: body.email,
+      name: body.name,
+      lastname: body.lastname,
+    })
     if (!user) return c.json({ error: 'ไม่พบผู้ใช้' }, 404)
     return c.json(user)
   })

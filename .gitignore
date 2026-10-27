@@ -8,6 +8,7 @@ coverage/
 *.sqlite
 *.sqlite-journal
 *.db
+data/
 uploads/
 .DS_Store
 .vscode/*

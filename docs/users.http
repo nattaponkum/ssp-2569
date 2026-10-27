@@ -1,4 +1,5 @@
 ### ทดสอบ API ด้วย VS Code REST Client (คลิก "Send Request" เหนือแต่ละคำขอ)
+### ก่อนทดสอบ (บทที่ 6 เป็นต้นไป) ให้รัน npm run db:migrate และ npm run db:seed หนึ่งครั้ง
 @baseUrl = http://localhost:8081/api
 
 GET {{baseUrl}}/hello
@@ -13,7 +14,7 @@ GET {{baseUrl}}/users/1
 POST {{baseUrl}}/users
 Content-Type: application/json
 
-{ "email": "somsri@example.com", "name": "สมศรี", "lastname": "รักเรียน" }
+{ "email": "malee@example.com", "name": "มาลี", "lastname": "สุขใจ" }
 
 ### แก้ไขบางฟิลด์
 PATCH {{baseUrl}}/users/1
@@ -28,7 +29,7 @@ DELETE {{baseUrl}}/users/2
 POST {{baseUrl}}/users
 Content-Type: application/json
 
-{ "email": "somsri@example.com" }
+{ "email": "malee@example.com" }
 
 ### ผู้ใช้ที่ไม่มีอยู่ ต้องได้ 404
 GET {{baseUrl}}/users/999
