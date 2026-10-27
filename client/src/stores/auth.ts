@@ -7,6 +7,8 @@ import { authApi } from '@/api/auth'
 // (เก็บแค่ข้อมูลผู้ใช้ ส่วน token อยู่ใน cookie ที่ JavaScript อ่านไม่ได้)
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
+  // ถาม server แล้วหรือยังว่า login อยู่หรือไม่ (route guard ใช้ตัดสินใจว่าต้องเรียก fetchMe ไหม)
+  const checked = ref(false)
   const isLoggedIn = computed(() => user.value !== null)
   const isAdmin = computed(() => user.value?.role === 'admin')
 
@@ -25,8 +27,10 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = await authApi.me()
     } catch {
       user.value = null
+    } finally {
+      checked.value = true
     }
   }
 
-  return { user, isLoggedIn, isAdmin, login, logout, fetchMe }
+  return { user, checked, isLoggedIn, isAdmin, login, logout, fetchMe }
 })
