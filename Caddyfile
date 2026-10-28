@@ -1,0 +1,8 @@
+# ตัวอย่าง Caddyfile: เปลี่ยน blog.example.com เป็นโดเมนจริงที่ชี้ (DNS) มายังเครื่อง server แล้ว
+# Caddy ขอใบรับรอง HTTPS จาก Let's Encrypt และต่ออายุให้อัตโนมัติ
+blog.example.com {
+	# บีบอัด response ให้เล็กลง
+	encode zstd gzip
+	# ส่งต่อทุก request ไปยัง container app (ชื่อ service ใน docker-compose.yml)
+	reverse_proxy app:8081
+}

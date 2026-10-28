@@ -1,0 +1,35 @@
+# รันทั้งระบบด้วยคำสั่งเดียว: docker compose up -d --build
+# ต้องสร้างไฟล์ .env ที่รากของ repo ก่อน (คัดลอกจาก .env.example)
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      NODE_ENV: production
+    ports:
+      - '8081:8081'
+    # เก็บฐานข้อมูลและไฟล์อัปโหลดไว้ใน volume ข้อมูลจึงไม่หายเมื่อสร้าง container ใหม่
+    volumes:
+      - app-data:/app/server/data
+      - app-uploads:/app/server/uploads
+    restart: unless-stopped
+
+  # (ไม่บังคับ) Caddy เป็น reverse proxy ที่ขอใบรับรอง HTTPS ให้อัตโนมัติ
+  # เปิดใช้ด้วย: docker compose --profile https up -d --build
+  caddy:
+    image: caddy:2
+    profiles: ['https']
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on:
+      - app
+    restart: unless-stopped
+
+volumes:
+  app-data:
+  app-uploads:
+  caddy-data:

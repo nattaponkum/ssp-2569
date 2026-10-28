@@ -1,0 +1,23 @@
+# Continuous Integration: ตรวจโค้ดทุกครั้งที่ push หรือเปิด pull request
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      # lint:check ไม่แก้โค้ดให้ (ต่างจาก npm run lint ที่ใช้ --fix) ถ้ามีปัญหา CI จะล้มเหลว
+      - run: npm run lint:check -w @ssp/client

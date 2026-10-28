@@ -55,6 +55,7 @@ test/               Vitest + app.request()
 - Node.js 24 LTS (24.15 ขึ้นไป) หรือ 26 ขึ้นไป ตรวจด้วย `node -v` (ไม่รองรับรุ่นเลขคี่ เช่น 25)
 - Git และบัญชี GitHub
 - VS Code พร้อมส่วนขยาย Vue (Official) และ REST Client
+- Docker Desktop (เฉพาะหัวข้อการ deploy ในบทที่ 16)
 
 ## เริ่มต้นใช้งานบนเครื่องของตัวเอง
 
@@ -102,17 +103,27 @@ client เรียก server ตามค่า `VITE_API_URL` (ค่าเร
 npm run typecheck              # tsc ของ shared, server, examples และ vue-tsc ของ client
 npm test                       # Vitest ของ server (ใช้ฐานข้อมูลในหน่วยความจำ) และ client
 npm run build                  # build client ไปที่ client/dist
-npm run lint -w @ssp/client    # oxlint + eslint ของ client
+npm run lint -w @ssp/client    # oxlint + eslint ของ client (แก้ให้อัตโนมัติด้วย --fix)
+npm run lint:check -w @ssp/client  # ตรวจอย่างเดียว ไม่แก้ไฟล์ (ใช้ใน CI)
 ```
 
-## รันแบบ production บนเครื่องตัวเอง
+GitHub Actions (`.github/workflows/ci.yml`) รันคำสั่งเหล่านี้ทุกครั้งที่ push ขึ้น `main` หรือเปิด pull request
+
+## นำขึ้นใช้งานจริง (deploy) ด้วย Docker
 
 ใน production server ตัวเดียวเสิร์ฟทั้งเว็บเซอร์วิส (`/api`), ไฟล์อัปโหลด (`/uploads`) และหน้าเว็บจาก `client/dist` (path อื่นได้ `index.html` ให้ Vue Router จัดการ) หน้าเว็บกับ API จึงอยู่ origin เดียวกัน
 
-```bash
-npm run build                                                                     # build client ไปที่ client/dist
-NODE_ENV=production CLIENT_ORIGIN=http://localhost:8081 npm start -w @ssp/server  # เปิด http://localhost:8081
-```
+1. คัดลอก `.env.example` (ที่รากของ repo) เป็น `.env` แล้วตั้ง `JWT_SECRET`, `ADMIN_PASSWORD` และ `CLIENT_ORIGIN` ให้ตรงกับ URL จริงของเว็บ (ทดลองบนเครื่องตัวเองใช้ `http://localhost:8081`)
+2. build และเริ่ม container (Dockerfile แบบ multi-stage: build client แล้วรัน server ด้วย `node:24-slim` ผู้ใช้ที่ไม่ใช่ root และรัน migration ให้ก่อนเริ่ม server ทุกครั้ง)
+
+   ```bash
+   docker compose up -d --build
+   docker compose exec app node src/db/seed.ts   # ครั้งแรกเท่านั้น: สร้าง admin และบทความตัวอย่าง
+   docker compose logs -f app                    # ดู log ของ request (hono/logger)
+   ```
+
+3. ฐานข้อมูลและไฟล์อัปโหลดเก็บใน Docker volume `app-data` และ `app-uploads` จึงไม่หายเมื่อ build image ใหม่
+4. HTTPS: แก้โดเมนใน `Caddyfile` ให้เป็นโดเมนจริงที่ชี้มายังเครื่อง server แล้วรัน `docker compose --profile https up -d --build` Caddy จะขอและต่ออายุใบรับรองจาก Let's Encrypt ให้อัตโนมัติ
 
 ด้านความปลอดภัยที่เปิดไว้แล้ว: รหัสผ่านเก็บเป็น scrypt hash (N=2^17, r=8, p=1 ตามคำแนะนำขั้นต่ำของ OWASP), จำกัด login ผิดได้ 5 ครั้งต่อ IP + อีเมลใน 15 นาที (ตัวนับอยู่ในหน่วยความจำของ process เดียว), JWT ใน cookie `httpOnly` + `SameSite=Lax` + `Secure` (production) และตรวจผู้ใช้กับ role ล่าสุดจากฐานข้อมูลทุก request, ตรวจ Origin ด้วย `hono/csrf`, security headers และ Content-Security-Policy ด้วย `hono/secure-headers`, ตรวจ input ทุก endpoint ด้วย Zod, sanitize HTML ของบทความ, ตรวจไฟล์อัปโหลดจาก magic bytes ตั้งชื่อไฟล์ใหม่ด้วย UUID และลบไฟล์ที่ไม่มีใครใช้แล้ว
 
@@ -140,3 +151,4 @@ git checkout main       # กลับมาที่โค้ดล่าสุ
 | `ch13-end` | 13 Rich Text Editor และการอัปโหลดไฟล์อย่างปลอดภัย | TipTap, sanitize-html, อัปโหลดรูป, รูปปก |
 | `ch14-end` | 14 การสืบค้นและการแบ่งหน้าข้อมูล | ค้นหา, หมวดหมู่, cursor pagination, infinite scroll |
 | `ch15-end` | 15 มาตรฐานและการจัดการเว็บ และความปลอดภัยก่อนใช้งานจริง | security headers, logger, config, origin เดียว, hardening |
+| `ch16-end` | 16 การนำขึ้นใช้งานจริงด้วย Docker และ CI | Dockerfile, compose, Caddy, CI, deploy, สำรองข้อมูล |
