@@ -3,10 +3,12 @@ import { idParamSchema, userCreateSchema, userUpdateSchema } from '@ssp/shared'
 import { db } from '../db/client.ts'
 import { zValidator } from '../lib/validator.ts'
 import { requireAuth, requireRole } from '../middlewares/auth.ts'
+import { ImageService } from '../services/ImageService.ts'
 import { UserService, type UserRepository } from '../services/UserService.ts'
 
 // Model: service ที่ดูแลข้อมูลผู้ใช้ (สร้างครั้งเดียว ใช้ร่วมกันทุก request)
 const userService: UserRepository = new UserService(db)
+const imageService = new ImageService(db)
 
 const EMAIL_TAKEN = 'อีเมลนี้ถูกใช้แล้ว'
 
@@ -55,7 +57,10 @@ export const usersRoute = new Hono()
     const { id } = c.req.valid('param')
     // กัน admin ลบบัญชีตัวเองจนไม่เหลือใครดูแลระบบ
     if (id === c.get('user').id) return c.json({ error: 'ลบบัญชีของตัวเองไม่ได้' }, 400)
-    const deleted = await userService.remove(id)
-    if (!deleted) return c.json({ error: 'ไม่พบผู้ใช้' }, 404)
+    if (!(await userService.findById(id))) return c.json({ error: 'ไม่พบผู้ใช้' }, 404)
+
+    // ลบไฟล์รูปของผู้ใช้ออกจากดิสก์ก่อน แล้วจึงลบผู้ใช้ (บทความถูกลบตามด้วย cascade)
+    await imageService.removeAllOf(id)
+    await userService.remove(id)
     return c.body(null, 204)
   })

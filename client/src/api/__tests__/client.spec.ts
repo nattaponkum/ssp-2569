@@ -1,5 +1,5 @@
 import { afterEach, describe, it, expect, vi } from 'vitest'
-import { api, ApiError } from '../client'
+import { api, API_URL, ApiError } from '../client'
 
 // แทน fetch จริงด้วยฟังก์ชันจำลอง จึงทดสอบได้โดยไม่ต้องเปิด server
 function mockFetch(status: number, body?: unknown) {
@@ -21,7 +21,8 @@ describe('api()', () => {
 
     expect(result).toEqual({ id: 1 })
     const [url, init] = fetchMock.mock.calls[0]!
-    expect(url).toBe('http://localhost:8081/api/users')
+    // ใช้ API_URL ที่ตั้งค่าไว้จริง (อาจถูกเปลี่ยนด้วย VITE_API_URL ในไฟล์ .env.local)
+    expect(url).toBe(`${API_URL}/api/users`)
     expect(init).toMatchObject({ method: 'POST', credentials: 'include', body: '{"name":"A"}' })
   })
 
@@ -30,6 +31,15 @@ describe('api()', () => {
     const error = await api('/users').catch((e) => e)
     expect(error).toBeInstanceOf(ApiError)
     expect(error).toMatchObject({ status: 409, message: 'อีเมลนี้ถูกใช้แล้ว' })
+  })
+
+  it('ติดต่อ server ไม่ได้ (fetch โยน TypeError) ได้ ApiError status 0', async () => {
+    const failing = vi.fn<typeof fetch>().mockRejectedValue(new TypeError('Failed to fetch'))
+    vi.stubGlobal('fetch', failing)
+    const error = await api('/users').catch((e) => e)
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error).toMatchObject({ status: 0 })
+    expect((error as ApiError).message).toContain('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้')
   })
 
   it('204 No Content คืน undefined', async () => {

@@ -11,6 +11,8 @@ export default defineConfig({
       JWT_SECRET: 'test-secret-for-vitest-only-0123456789',
       // ไฟล์ที่อัปโหลดระหว่างทดสอบไปอยู่ในโฟลเดอร์ชั่วคราวของระบบ
       UPLOAD_DIR: join(tmpdir(), 'ssp-2569-test-uploads'),
+      // ไม่เสิร์ฟหน้าเว็บของ client ระหว่างทดสอบ (static.test.ts ทดสอบส่วนนี้แยกต่างหาก)
+      CLIENT_DIST: join(tmpdir(), 'ssp-2569-no-client-dist'),
     },
     setupFiles: ['./src/test/setup.ts'],
   },

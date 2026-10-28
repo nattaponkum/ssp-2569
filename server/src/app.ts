@@ -1,10 +1,13 @@
-import { mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { Hono } from 'hono'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { cors } from 'hono/cors'
 import { csrf } from 'hono/csrf'
-import { HTTPException } from 'hono/http-exception'
-import { config } from './config.ts'
+import { logger } from 'hono/logger'
+import { secureHeaders } from 'hono/secure-headers'
+import { config, isTest } from './config.ts'
+import { errorHandler, notFound } from './middlewares/error-handler.ts'
 import { authRoute } from './routes/auth.ts'
 import { adminPostsRoute, categoriesRoute, postsRoute } from './routes/posts.ts'
 import { uploadsRoute } from './routes/uploads.ts'
@@ -12,6 +15,25 @@ import { usersRoute } from './routes/users.ts'
 
 // ทุก endpoint อยู่ใต้ /api ส่วน route ของแต่ละ resource แยกไว้ใน routes/
 export const app = new Hono()
+  // บันทึก request ทุกครั้ง: method, path, status และเวลาที่ใช้ (ปิดตอนทดสอบเพื่อไม่ให้รก)
+  .use(logger(isTest ? () => {} : undefined))
+  // header ด้านความปลอดภัยมาตรฐาน เช่น X-Content-Type-Options: nosniff, X-Frame-Options, HSTS
+  // และ Content-Security-Policy: โหลด script/รูป/การเชื่อมต่อได้จากเว็บเราเองเป็นหลัก
+  .use(
+    secureHeaders({
+      contentSecurityPolicy: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        // Vue และ TipTap ตั้ง style แบบ inline บางส่วน
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        // รูปในบทความอาจลิงก์ไปยังเว็บอื่นแบบ https ได้ (sanitize-html อนุญาตไว้)
+        imgSrc: ["'self'", 'https:'],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        frameAncestors: ["'none'"],
+      },
+    }),
+  )
   // CORS: อนุญาตให้หน้าเว็บจาก origin ของ client (Vite dev server) เรียก API ข้าม origin ได้
   // credentials: true ให้ browser ส่ง/รับ cookie ด้วย (ใช้ในบทที่ 10)
   .use('/api/*', cors({ origin: config.CLIENT_ORIGIN, credentials: true }))
@@ -26,35 +48,32 @@ export const app = new Hono()
   .route('/api/uploads', uploadsRoute)
 
 // เสิร์ฟไฟล์ที่อัปโหลด: /uploads/<ชื่อไฟล์> อ่านจากโฟลเดอร์ UPLOAD_DIR
-// (สร้างโฟลเดอร์ไว้ก่อนถ้ายังไม่มี)
+// (สร้างโฟลเดอร์ไว้ก่อนถ้ายังไม่มี; header nosniff มาจาก secureHeaders ข้างบนแล้ว)
 mkdirSync(config.UPLOAD_DIR, { recursive: true })
 app.use(
   '/uploads/*',
-  async (c, next) => {
-    // บอก browser ห้ามเดาชนิดไฟล์เอง ให้เชื่อ Content-Type ที่ server ส่ง
-    c.header('X-Content-Type-Options', 'nosniff')
-    await next()
-  },
   serveStatic({
     root: config.UPLOAD_DIR,
     rewriteRequestPath: (path) => path.replace(/^\/uploads/, ''),
   }),
 )
 
-// ไม่พบ route ที่ตรงกัน: ตอบ 404 รูปแบบเดียวกับ error อื่น
-app.notFound((c) => c.json({ error: 'ไม่พบ endpoint นี้' }, 404))
+// production: เสิร์ฟหน้าเว็บ (ผลของ npm run build ฝั่ง client) จาก origin เดียวกับ API
+// ทำงานเฉพาะเมื่อมี client/dist/index.html อยู่จริง ตอนพัฒนาใช้ Vite dev server แทน
+const indexHtml = join(config.CLIENT_DIST, 'index.html')
+if (existsSync(indexHtml)) {
+  // ไฟล์ที่มีอยู่จริง เช่น /assets/index-abc123.js, /favicon.ico
+  app.use('/*', serveStatic({ root: config.CLIENT_DIST }))
+  // SPA fallback: path อื่น (เช่น /posts/5, /admin/posts) ส่ง index.html ให้ Vue Router จัดการต่อ
+  // ยกเว้น /api และ /uploads ที่ต้องตอบ 404 ตามจริง
+  app.get('*', async (c, next) => {
+    if (c.req.path.startsWith('/api/') || c.req.path.startsWith('/uploads/')) return next()
+    return serveStatic({ path: indexHtml })(c, next)
+  })
+}
 
-// error ที่ไม่ได้จัดการ: ตอบรูปแบบ { error } และไม่ส่งรายละเอียดภายในให้ client
-app.onError(async (err, c) => {
-  // HTTPException คือ error ที่ตั้งใจโยนพร้อม status เช่น JSON ที่ส่งมาผิดรูปแบบ (400)
-  // หรือ request ที่ไม่ผ่าน CSRF (403)
-  if (err instanceof HTTPException) {
-    const message = err.message || (await err.getResponse().text())
-    return c.json({ error: message }, err.status)
-  }
-  console.error(err)
-  return c.json({ error: 'เกิดข้อผิดพลาดภายในเซิร์ฟเวอร์' }, 500)
-})
+app.notFound(notFound)
+app.onError(errorHandler)
 
 // ใช้กับ Hono RPC และการทดสอบ
 export type AppType = typeof app

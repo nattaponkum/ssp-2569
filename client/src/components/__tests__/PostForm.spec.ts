@@ -31,6 +31,18 @@ describe('PostForm', () => {
     expect(wrapper.find('.error').exists()).toBe(true)
   })
 
+  it('เนื้อหามีแต่ <p></p> จาก editor ว่าง: แสดง error และไม่ส่ง submit', async () => {
+    const wrapper = mountForm()
+    const inputs = wrapper.findAll('input:not([type=file])')
+    await inputs[0]!.setValue('เรื่องใหม่')
+    await inputs[1]!.setValue('บทเรียน')
+    await wrapper.find('textarea').setValue('<p></p>')
+    await wrapper.find('form').trigger('submit')
+
+    expect(wrapper.emitted('submit')).toBeUndefined()
+    expect(wrapper.text()).toContain('กรุณาใส่เนื้อหาบทความ')
+  })
+
   it('กรอกครบ: ส่งข้อมูลพร้อมสถานะเริ่มต้นเป็น draft', async () => {
     const wrapper = mountForm()
     const inputs = wrapper.findAll('input:not([type=file])')

@@ -62,7 +62,9 @@ onMounted(load)
           <td>{{ post.status === 'published' ? 'เผยแพร่' : 'ฉบับร่าง' }}</td>
           <td>{{ formatDate(post.updatedAt) }}</td>
           <td>
-            <RouterLink :to="{ name: 'admin-post-edit', params: { id: post.id } }">แก้ไข</RouterLink>
+            <RouterLink :to="{ name: 'admin-post-edit', params: { id: post.id } }">
+              แก้ไข
+            </RouterLink>
             <button type="button" class="danger" @click="remove(post)">ลบ</button>
           </td>
         </tr>

@@ -174,3 +174,18 @@ describe('ค้นหา หมวดหมู่ และแบ่งหน�
     expect(new Set(categories).size).toBe(categories.length)
   })
 })
+
+describe('เนื้อหาว่าง (บทที่ 15)', () => {
+  it('editor ว่าง (<p></p>) หรือมีแต่ script ได้ 400 ทั้งตอนสร้างและแก้ไข', async () => {
+    expect((await createPost(author, { ...draft, content: '<p></p>' })).res.status).toBe(400)
+    const scriptOnly = { ...draft, content: '<script>alert(1)</script>' }
+    expect((await createPost(author, scriptOnly)).res.status).toBe(400)
+
+    const { post } = await createPost(author, draft)
+    const res = await send('PATCH', `/api/posts/${post.id}`, {
+      cookie: author,
+      body: { content: '<p> </p>' },
+    })
+    expect(res.status).toBe(400)
+  })
+})

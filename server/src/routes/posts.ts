@@ -1,14 +1,19 @@
 import { Hono } from 'hono'
 import { idParamSchema, postCreateSchema, postQuerySchema, postUpdateSchema } from '@ssp/shared'
 import { db } from '../db/client.ts'
+import { hasText } from '../lib/html.ts'
 import { zValidator } from '../lib/validator.ts'
 import { requireAuth } from '../middlewares/auth.ts'
+import { ImageService } from '../services/ImageService.ts'
 import { PostService } from '../services/PostService.ts'
 
 const postService = new PostService(db)
+const imageService = new ImageService(db)
 
 const NOT_FOUND = 'ไม่พบบทความ'
 const FORBIDDEN = 'แก้ไขได้เฉพาะบทความของตัวเอง'
+// editor ที่ว่างเปล่ายังส่ง <p></p> มา ผ่าน min(1) ของ Zod จึงต้องตรวจข้อความจริงอีกชั้น
+const EMPTY_CONTENT = 'กรุณาใส่เนื้อหาบทความ'
 
 // /api/posts: อ่านได้ทุกคน (เฉพาะที่เผยแพร่แล้ว) ส่วนการสร้าง แก้ไข ลบ ต้อง login
 export const postsRoute = new Hono()
@@ -25,7 +30,9 @@ export const postsRoute = new Hono()
 
   // ผู้เขียนคือผู้ที่ login อยู่ (ไม่รับ authorId จาก client)
   .post('/', requireAuth, zValidator('json', postCreateSchema), async (c) => {
-    const post = await postService.create(c.get('user').id, c.req.valid('json'))
+    const data = c.req.valid('json')
+    if (!hasText(data.content)) return c.json({ error: EMPTY_CONTENT }, 400)
+    const post = await postService.create(c.get('user').id, data)
     return c.json(post, 201)
   })
 
@@ -40,8 +47,17 @@ export const postsRoute = new Hono()
       if (!post) return c.json({ error: NOT_FOUND }, 404)
       // ตรวจความเป็นเจ้าของก่อนแก้ไข (authorization)
       if (!postService.canModify(c.get('user'), post)) return c.json({ error: FORBIDDEN }, 403)
+      const data = c.req.valid('json')
+      if (data.content !== undefined && !hasText(data.content)) {
+        return c.json({ error: EMPTY_CONTENT }, 400)
+      }
 
-      return c.json(await postService.update(id, c.req.valid('json')))
+      const updated = await postService.update(id, data)
+      // เปลี่ยนหรือเอารูปปกออกแล้ว ลบไฟล์รูปปกเดิมถ้าไม่มีบทความใดใช้อยู่
+      if (post.thumbnail && post.thumbnail !== updated?.thumbnail) {
+        await imageService.removeIfUnused(post.thumbnail)
+      }
+      return c.json(updated)
     },
   )
 
@@ -52,6 +68,7 @@ export const postsRoute = new Hono()
     if (!postService.canModify(c.get('user'), post)) return c.json({ error: FORBIDDEN }, 403)
 
     await postService.remove(id)
+    if (post.thumbnail) await imageService.removeIfUnused(post.thumbnail)
     return c.body(null, 204)
   })
 

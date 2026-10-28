@@ -1,7 +1,11 @@
 // ฟังก์ชันกลางสำหรับ "เรียกใช้" เว็บเซอร์วิส ทุกไฟล์ใน src/api/ ใช้ฟังก์ชันนี้
 
-// ที่อยู่ของ server อ่านจากไฟล์ .env ของ Vite (ถ้าไม่ได้ตั้งไว้ใช้ค่าของเครื่องนักพัฒนา)
-export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8081'
+// ที่อยู่ของ server อ่านจากไฟล์ .env ของ Vite ถ้าไม่ได้ตั้งไว้:
+// - ตอนพัฒนา (npm run dev) ใช้ server บนเครื่อง http://localhost:8081
+// - ตอน build ไปใช้งานจริง ใช้ '' คือเรียก /api บน origin เดียวกับหน้าเว็บ
+//   (Hono เสิร์ฟทั้งหน้าเว็บและ API)
+const DEFAULT_API_URL = import.meta.env.DEV ? 'http://localhost:8081' : ''
+export const API_URL = import.meta.env.VITE_API_URL ?? DEFAULT_API_URL
 
 // error ที่มี status code และข้อความจาก server ({ error, issues })
 export class ApiError extends Error {
@@ -28,8 +32,18 @@ function toRequestBody(body: unknown): { body?: BodyInit; headers: Record<string
   return { body: JSON.stringify(body), headers: { 'Content-Type': 'application/json' } }
 }
 
+// เรียก fetch และแปลงกรณีติดต่อ server ไม่ได้เลย (server ปิดอยู่ เน็ตหลุด CORS ผิด)
+// ซึ่ง fetch โยน TypeError "Failed to fetch" ให้เป็นข้อความภาษาไทยที่ผู้ใช้เข้าใจ
+async function send(url: string, init: RequestInit): Promise<Response> {
+  try {
+    return await fetch(url, init)
+  } catch {
+    throw new ApiError(0, 'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่')
+  }
+}
+
 export async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const res = await fetch(`${API_URL}/api${path}`, {
+  const res = await send(`${API_URL}/api${path}`, {
     method: options.method ?? 'GET',
     // ให้ browser แนบ cookie ไปด้วยแม้ client กับ server อยู่คนละ origin
     credentials: 'include',

@@ -94,7 +94,8 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const auth = useAuthStore()
 
-  // ครั้งแรกที่เปิดเว็บยังไม่รู้ว่า login อยู่หรือไม่ ให้ถาม server ก่อน (cookie มองไม่เห็นจาก JavaScript)
+  // ครั้งแรกที่เปิดเว็บยังไม่รู้ว่า login อยู่หรือไม่ ให้ถาม server ก่อน
+  // (cookie แบบ httpOnly มองไม่เห็นจาก JavaScript)
   if (!auth.checked) await auth.fetchMe()
 
   // ยังไม่ login: ส่งไปหน้า login และจำหน้าที่ตั้งใจจะไปไว้ใน query

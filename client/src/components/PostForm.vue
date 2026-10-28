@@ -51,6 +51,12 @@ function onSubmit() {
     errors.value = z.flattenError(result.error).fieldErrors
     return
   }
+  // editor ที่ว่างอยู่ยังส่ง <p></p> มา ตรวจว่ามีข้อความจริงหรือไม่ (server ตรวจซ้ำอีกชั้น)
+  const html = new DOMParser().parseFromString(result.data.content, 'text/html')
+  if (!html.body.textContent?.trim()) {
+    errors.value = { content: ['กรุณาใส่เนื้อหาบทความ'] }
+    return
+  }
   errors.value = {}
   emit('submit', result.data)
 }

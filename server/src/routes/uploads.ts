@@ -25,7 +25,10 @@ export const uploadsRoute = new Hono()
     }),
     async (c) => {
       // multipart/form-data: ไฟล์อยู่ในฟิลด์ชื่อ file
-      const body = await c.req.parseBody()
+      // ถ้า body ไม่ใช่ multipart ที่ถูกต้อง (เช่น ตั้ง Content-Type เองแต่ไม่มี boundary)
+      // parseBody จะโยน error จึงดักไว้แล้วตอบ 400
+      const body = await c.req.parseBody().catch(() => null)
+      if (!body) return c.json({ error: 'ต้องส่งไฟล์แบบ multipart/form-data' }, 400)
       const file = body.file
       if (!(file instanceof File)) return c.json({ error: 'กรุณาแนบไฟล์ในฟิลด์ file' }, 400)
       // ชั้นที่สอง: ตรวจขนาดของไฟล์เอง

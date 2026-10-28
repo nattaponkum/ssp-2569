@@ -1,9 +1,17 @@
+import { randomUUID } from 'node:crypto'
 import { eq } from 'drizzle-orm'
 import type { LoginInput, RegisterInput, User } from '@ssp/shared'
 import type { Db } from '../db/client.ts'
 import { users } from '../db/schema.ts'
-import { verifyPassword } from '../lib/password.ts'
+import { hashPassword, verifyPassword } from '../lib/password.ts'
 import { UserService } from './UserService.ts'
+
+// hash ของรหัสผ่านสุ่มที่ไม่มีใครรู้ ใช้ตรวจแทนเมื่อไม่พบอีเมล (สร้างครั้งแรกที่ต้องใช้แล้วเก็บไว้)
+let dummyHash: Promise<string> | undefined
+function getDummyHash(): Promise<string> {
+  dummyHash ??= hashPassword(randomUUID())
+  return dummyHash
+}
 
 // business logic ของการพิสูจน์ตัวตน: สมัครสมาชิกและตรวจรหัสผ่าน
 // (การสร้าง/ตรวจ JWT อยู่ใน lib/token.ts ส่วนการตั้ง cookie อยู่ใน routes/auth.ts)
@@ -27,7 +35,11 @@ export class AuthService {
   // คืนข้อมูลผู้ใช้ถ้าอีเมลและรหัสผ่านถูกต้อง ไม่เช่นนั้นคืน undefined
   async login(data: LoginInput): Promise<User | undefined> {
     const row = this.db.select().from(users).where(eq(users.email, data.email)).get()
-    if (!row || !(await verifyPassword(data.password, row.passwordHash))) return undefined
+    // ไม่พบอีเมลก็ยังคำนวณ scrypt กับ hash หลอก ให้เวลาตอบใกล้เคียงกับกรณีรหัสผ่านผิด
+    // ผู้โจมตีจึงจับเวลาเพื่อเดาว่าอีเมลใดมีบัญชีอยู่ไม่ได้
+    const storedHash = row?.passwordHash ?? (await getDummyHash())
+    const passwordOk = await verifyPassword(data.password, storedHash)
+    if (!row || !passwordOk) return undefined
 
     // ตัด passwordHash ออกก่อนส่งกลับ
     const { passwordHash: _, ...user } = row

@@ -91,3 +91,53 @@ describe('การป้องกัน endpoint', () => {
     expect(await res.json()).toHaveProperty('error')
   })
 })
+
+describe('ทบทวนความปลอดภัย (บทที่ 15)', () => {
+  it('token ของผู้ใช้ที่ถูกลบไปแล้วใช้ไม่ได้ (401) และ cookie ถูกลบ', async () => {
+    const admin = await loginAs('admin')
+    const victim = await loginAs('user')
+    await send('DELETE', `/api/users/${victim.user.id}`, { cookie: admin.cookie })
+
+    const res = await send('POST', '/api/posts', {
+      cookie: victim.cookie,
+      body: { title: 'x', content: '<p>x</p>', category: 'x' },
+    })
+    expect(res.status).toBe(401)
+    expect(res.headers.get('Set-Cookie')).toContain('Max-Age=0')
+  })
+
+  it('ใช้ role ล่าสุดจากฐานข้อมูล: admin ที่ถูกลดสิทธิ์ใช้ /api/users ไม่ได้ทันที', async () => {
+    const boss = await loginAs('admin')
+    const demoted = await loginAs('admin')
+    await send('PATCH', `/api/users/${demoted.user.id}`, {
+      cookie: boss.cookie,
+      body: { role: 'user' },
+    })
+    expect((await send('GET', '/api/users', { cookie: demoted.cookie })).status).toBe(403)
+  })
+})
+
+describe('จำกัดจำนวนครั้ง login ผิด', () => {
+  it('ผิดครบ 5 ครั้ง ครั้งที่ 6 ได้ 429 พร้อม Retry-After แม้รหัสผ่านถูก', async () => {
+    const { user } = await loginAs('user')
+    const login = (password: string) =>
+      send('POST', '/api/auth/login', { body: { email: user.email, password } })
+
+    for (let i = 0; i < 5; i++) expect((await login('wrong-password')).status).toBe(401)
+
+    const blocked = await login(PASSWORD)
+    expect(blocked.status).toBe(429)
+    expect(Number(blocked.headers.get('Retry-After'))).toBeGreaterThan(0)
+    expect(await blocked.json()).toHaveProperty('error')
+  })
+
+  it('นับแยกตามอีเมล และ login สำเร็จแล้วตัวนับเริ่มใหม่', async () => {
+    const { user } = await loginAs('user')
+    const login = (password: string) =>
+      send('POST', '/api/auth/login', { body: { email: user.email, password } })
+
+    for (let i = 0; i < 4; i++) await login('wrong-password')
+    expect((await login(PASSWORD)).status).toBe(200)
+    for (let i = 0; i < 4; i++) expect((await login('wrong-password')).status).toBe(401)
+  })
+})

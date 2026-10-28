@@ -3,19 +3,15 @@ import { reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { loginSchema } from '@ssp/shared'
 import { useAuthStore } from '@/stores/auth'
+import { safeRedirect } from '@/utils/redirect'
 
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
 // หน้าที่จะไปต่อหลัง login (route guard ใส่ไว้ใน ?redirect=)
-// รับเฉพาะ path ภายในเว็บเรา ('/...' แต่ไม่ใช่ '//...') กันการถูกพาไปเว็บอื่น (open redirect)
 function nextPage(): string {
-  const redirect = route.query.redirect
-  if (typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')) {
-    return redirect
-  }
-  return '/admin'
+  return safeRedirect(route.query.redirect, '/admin')
 }
 
 const form = reactive({ email: '', password: '' })

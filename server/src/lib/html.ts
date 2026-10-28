@@ -41,3 +41,8 @@ export function htmlToText(html: string): string {
     .replace(/\s+/g, ' ')
     .trim()
 }
+
+// เนื้อหามีข้อความจริงหรือไม่ (ตรวจหลัง sanitize) เช่น <p></p> จาก editor ที่ว่างอยู่ถือว่าไม่มี
+export function hasText(html: string): boolean {
+  return htmlToText(sanitizePostHtml(html)) !== ''
+}

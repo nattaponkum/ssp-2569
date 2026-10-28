@@ -14,16 +14,20 @@ const editing = ref<User | null>(null)
 const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
+// โหลดรายการไม่สำเร็จ: ซ่อนตาราง ไม่ให้แถว "ยังไม่มีผู้ใช้" แสดงพร้อมข้อความ error
+const loadFailed = ref(false)
 // เปลี่ยนค่า key เพื่อให้ Vue สร้างฟอร์มใหม่ (ล้างช่องกรอก) หลังบันทึกสำเร็จ
 const formKey = ref(0)
 
 async function load() {
   loading.value = true
   error.value = ''
+  loadFailed.value = false
   try {
     users.value = await usersApi.list()
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'โหลดข้อมูลไม่สำเร็จ'
+    loadFailed.value = true
   } finally {
     loading.value = false
   }
@@ -76,7 +80,12 @@ onMounted(load)
     <h1>จัดการผู้ใช้</h1>
     <p v-if="error" class="error">{{ error }}</p>
     <p v-if="loading" class="muted">กำลังโหลด...</p>
-    <UserTable v-else :users="users" @edit="editing = $event" @delete="remove" />
+    <UserTable
+      v-else-if="!loadFailed"
+      :users="users"
+      @edit="editing = $event"
+      @delete="remove"
+    />
 
     <h2>{{ editing ? `แก้ไข ${editing.name}` : 'เพิ่มผู้ใช้ใหม่' }}</h2>
     <UserForm

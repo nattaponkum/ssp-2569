@@ -2,7 +2,7 @@ import { beforeAll, describe, it, expect } from 'vitest'
 import { app } from '../app.ts'
 import { detectImageType } from '../lib/file-type.ts'
 import { MAX_UPLOAD_SIZE } from '../services/ImageService.ts'
-import { loginAs, ORIGIN } from './helpers.ts'
+import { loginAs, ORIGIN, send } from './helpers.ts'
 
 // PNG ขนาด 1x1 พิกเซล (ไฟล์รูปจริงที่เล็กที่สุดแบบหนึ่ง)
 const PNG_1PX = Uint8Array.from(
@@ -93,6 +93,42 @@ describe('DELETE /api/uploads/:id', () => {
 
     expect((await del(other)).status).toBe(403)
     expect((await del(owner)).status).toBe(204)
+    expect((await app.request(image.url)).status).toBe(404)
+  })
+})
+
+describe('ทบทวนความปลอดภัย (บทที่ 15)', () => {
+  it('ตั้ง Content-Type เป็น multipart เองแต่ไม่มี boundary ได้ 400 ไม่ใช่ 500', async () => {
+    const res = await app.request('/api/uploads', {
+      method: 'POST',
+      headers: { Origin: ORIGIN, Cookie: owner, 'Content-Type': 'multipart/form-data' },
+      body: 'not really multipart',
+    })
+    expect(res.status).toBe(400)
+    expect(await res.json()).toHaveProperty('error')
+  })
+
+  it('เปลี่ยนรูปปกแล้วไฟล์รูปปกเดิมที่ไม่มีใครใช้ถูกลบ', async () => {
+    const first = await (await upload(owner, PNG_1PX, 'a.png', 'image/png')).json()
+    const second = await (await upload(owner, PNG_1PX, 'b.png', 'image/png')).json()
+    const post = await (
+      await send('POST', '/api/posts', {
+        cookie: owner,
+        body: { title: 'ปก', content: '<p>มีปก</p>', category: 'ทดสอบ', thumbnail: first.url },
+      })
+    ).json()
+
+    await send('PATCH', `/api/posts/${post.id}`, { cookie: owner, body: { thumbnail: second.url } })
+    expect((await app.request(first.url)).status).toBe(404)
+    expect((await app.request(second.url)).status).toBe(200)
+  })
+
+  it('ลบผู้ใช้แล้วไฟล์รูปของผู้ใช้นั้นถูกลบจากดิสก์ด้วย', async () => {
+    const admin = await loginAs('admin')
+    const temp = await loginAs('user')
+    const image = await (await upload(temp.cookie, PNG_1PX, 'a.png', 'image/png')).json()
+
+    await send('DELETE', `/api/users/${temp.user.id}`, { cookie: admin.cookie })
     expect((await app.request(image.url)).status).toBe(404)
   })
 })
